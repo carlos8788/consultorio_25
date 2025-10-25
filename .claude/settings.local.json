@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "Read(//m/electronJS/**)",
+      "Bash(mkdir:*)",
+      "Bash(cat:*)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}
