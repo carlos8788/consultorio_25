@@ -30,7 +30,7 @@ const obraSocialSchema = new Schema({
 obraSocialSchema.plugin(mongoosePaginate);
 
 // Índices
-obraSocialSchema.index({ nombre: 1 });
+// obraSocialSchema.index({ nombre: 1 });
 
 const ObraSocial = model('ObraSocial', obraSocialSchema);
 

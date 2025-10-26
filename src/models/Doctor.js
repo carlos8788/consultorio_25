@@ -39,7 +39,7 @@ const doctorSchema = new Schema({
   versionKey: false
 });
 
-doctorSchema.index({ userId: 1 });
+doctorSchema.index({ matricula: 1 });
 
 const Doctor = model('Doctor', doctorSchema);
 
