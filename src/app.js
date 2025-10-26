@@ -19,6 +19,7 @@ import obraSocialRoutes from './routes/obraSocialRoutes.js';
 import pacienteRoutes from './routes/pacienteRoutes.js';
 import turnoRoutes from './routes/turnoRoutes.js';
 import apiRoutes from './routes/apiRoutes.js';
+import doctorRoutes from './routes/doctorRoutes.js';
 
 // Configuración de __dirname para ES6
 const __filename = fileURLToPath(import.meta.url);
@@ -100,6 +101,7 @@ app.use('/', authRoutes);
 app.use('/obras-sociales', obraSocialRoutes);
 app.use('/pacientes', pacienteRoutes);
 app.use('/turnos', turnoRoutes);
+app.use('/', doctorRoutes);
 app.use('/api', apiRoutes);
 
 // Manejo de errores 404

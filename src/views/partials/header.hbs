@@ -13,6 +13,9 @@
             <li><a href="/pacientes">Pacientes</a></li>
             <li><a href="/turnos">Turnos</a></li>
             <li><a href="/obras-sociales">Obras Sociales</a></li>
+            {{#if isAdmin}}
+              <li><a href="/admin/doctores">Profesionales</a></li>
+            {{/if}}
             <li class="dropdown">
               <a href="#"><span>{{user.username}}</span> <i class="bi bi-chevron-down toggle-dropdown"></i></a>
               <ul>

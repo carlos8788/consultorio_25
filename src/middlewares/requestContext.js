@@ -17,6 +17,7 @@ export const attachRequestContext = (req, res, next) => {
   req.context = context;
   res.locals.user = user;
   res.locals.isAuthenticated = context.isAuthenticated;
+  res.locals.isAdmin = context.isAdmin;
   res.locals.activeDoctorId = context.activeDoctorId;
   res.locals.activeDoctorName = context.activeDoctorName;
   res.locals.currentPath = req.path;

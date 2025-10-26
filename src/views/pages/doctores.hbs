@@ -1,0 +1,174 @@
+<section class="section dashboard">
+  <div class="container">
+    <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-4 gap-3">
+      <div>
+        <p class="text-uppercase text-muted small mb-1">Panel de administración</p>
+        <h2 class="mb-1">Profesionales registrados</h2>
+        <p class="text-muted mb-0">Consulta los accesos y restablece las credenciales de manera segura.</p>
+      </div>
+      <a href="/dashboard" class="btn btn-outline-secondary">
+        <i class="bi bi-arrow-left-short me-1"></i>
+        Volver al dashboard
+      </a>
+    </div>
+
+    <div id="doctorResetFeedback" class="alert d-none" role="alert"></div>
+
+    <div class="card shadow-sm">
+      <div class="card-body p-0">
+        <div class="table-responsive">
+          <table class="table table-hover align-middle mb-0">
+            <thead class="table-light">
+              <tr>
+                <th scope="col">Profesional</th>
+                <th scope="col">Usuario / Contacto</th>
+                <th scope="col" class="text-center">Último reseteo</th>
+                <th scope="col" class="text-center">Acciones</th>
+              </tr>
+            </thead>
+            <tbody>
+              {{#if doctors.length}}
+                {{#each doctors}}
+                  <tr data-doctor-row="{{id}}">
+                    <td>
+                      <div class="fw-semibold">{{nombreCompleto}}</div>
+                      <div class="text-muted small">{{especialidad}}</div>
+                      {{#if matricula}}
+                        <div class="text-muted small">Matrícula: {{matricula}}</div>
+                      {{/if}}
+                    </td>
+                    <td>
+                      <div class="d-flex flex-column gap-1">
+                        <span class="badge bg-light text-dark text-wrap align-self-start">
+                          <i class="bi bi-person-badge me-1"></i> {{userId}}
+                        </span>
+                        {{#if email}}
+                          <span class="text-muted small">
+                            <i class="bi bi-envelope me-1"></i> {{email}}
+                          </span>
+                        {{/if}}
+                        {{#if telefono}}
+                          <span class="text-muted small">
+                            <i class="bi bi-telephone me-1"></i> {{telefono}}
+                          </span>
+                        {{/if}}
+                      </div>
+                    </td>
+                    <td class="text-center">
+                      <span class="d-block fw-semibold" data-reset-date>
+                        {{#if passwordUpdatedAt}}
+                          {{formatDate passwordUpdatedAt}}
+                        {{else}}
+                          Sin registros
+                        {{/if}}
+                      </span>
+                      <small class="text-muted">Fecha/Hora local</small>
+                    </td>
+                    <td class="text-center">
+                      <button
+                        type="button"
+                        class="btn btn-sm btn-primary"
+                        data-reset-button
+                        data-doctor-id="{{id}}"
+                        data-doctor-name="{{nombreCompleto}}">
+                        <i class="bi bi-arrow-clockwise me-1"></i>
+                        Resetear clave
+                      </button>
+                    </td>
+                  </tr>
+                {{/each}}
+              {{else}}
+                <tr>
+                  <td colspan="4" class="text-center py-5 text-muted">
+                    <i class="bi bi-inboxes display-5 d-block mb-3"></i>
+                    No hay profesionales registrados.
+                  </td>
+                </tr>
+              {{/if}}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<script>
+  (() => {
+    const feedback = document.getElementById('doctorResetFeedback');
+
+    const showFeedback = (type, message) => {
+      if (!feedback) return;
+      feedback.className = `alert alert-${type}`;
+      feedback.innerHTML = message;
+    };
+
+    const updateRowDate = (doctorId, newDate) => {
+      const row = document.querySelector(`[data-doctor-row="${doctorId}"]`);
+      if (!row) return;
+      const dateEl = row.querySelector('[data-reset-date]');
+      if (!dateEl) return;
+
+      if (!newDate) {
+        dateEl.textContent = 'Sin registros';
+        return;
+      }
+
+      const date = new Date(newDate);
+      dateEl.textContent = date.toLocaleString('es-AR');
+    };
+
+    const toggleLoading = (button, isLoading) => {
+      if (!button) return;
+      if (isLoading) {
+        button.dataset.originalContent = button.innerHTML;
+        button.disabled = true;
+        button.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status"></span>Procesando';
+        return;
+      }
+
+      if (button.dataset.originalContent) {
+        button.innerHTML = button.dataset.originalContent;
+        delete button.dataset.originalContent;
+      }
+      button.disabled = false;
+    };
+
+    const handleResetClick = async (event) => {
+      const button = event.currentTarget;
+      const doctorId = button.dataset.doctorId;
+      const doctorName = button.dataset.doctorName;
+
+      try {
+        toggleLoading(button, true);
+        const response = await fetch(`/admin/doctores/${doctorId}/reset-password`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json'
+          },
+          body: JSON.stringify({})
+        });
+
+        const payload = await response.json();
+        if (!response.ok) {
+          throw new Error(payload.error || 'No se pudo restablecer la clave');
+        }
+
+        showFeedback(
+          'success',
+          `La nueva clave temporal para <strong>${doctorName}</strong> es <code>${payload.newPassword}</code>.`
+        );
+        updateRowDate(doctorId, payload.doctor?.passwordUpdatedAt);
+      } catch (error) {
+        showFeedback('danger', error.message || 'No se pudo restablecer la clave.');
+      } finally {
+        toggleLoading(button, false);
+      }
+    };
+
+    document.querySelectorAll('[data-reset-button]').forEach((button) => {
+      button.addEventListener('click', handleResetClick);
+    });
+  })();
+</script>

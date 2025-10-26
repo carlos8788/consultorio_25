@@ -7,6 +7,13 @@ const doctorSchema = new Schema({
     unique: true,
     trim: true
   },
+  passwordHash: {
+    type: String,
+    select: false
+  },
+  passwordUpdatedAt: {
+    type: Date
+  },
   nombre: {
     type: String,
     required: [true, 'El nombre del profesional es obligatorio'],

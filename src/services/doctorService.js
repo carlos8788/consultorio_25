@@ -1,8 +1,11 @@
 import {
   findByUserId,
+  findByUserIdWithPassword,
   createDoctor,
   getDoctorById,
-  listDoctors as listDoctorsRepo
+  getDoctorByIdWithPassword,
+  listDoctors as listDoctorsRepo,
+  updateDoctorPassword
 } from '../repositories/doctorRepository.js';
 import {
   assignDoctorToLegacyPatients,
@@ -12,6 +15,11 @@ import {
   assignDoctorToLegacyTurnos,
   legacyTurnoFilter
 } from '../repositories/turnoRepository.js';
+import {
+  generateRandomPassword,
+  hashPassword,
+  verifyPassword
+} from '../utils/passwordUtils.js';
 
 export const ensureDoctorForUser = async (userConfig) => {
   if (userConfig.role === 'admin') {
@@ -54,3 +62,45 @@ export const doctorLegacyFilters = {
 };
 
 export const listDoctors = () => listDoctorsRepo();
+
+export const authenticateDoctorCredentials = async (username, password) => {
+  if (!username || !password) {
+    return null;
+  }
+
+  const doctor = await findByUserIdWithPassword(username);
+  if (!doctor || !doctor.passwordHash) {
+    return null;
+  }
+
+  const isValid = await verifyPassword(password, doctor.passwordHash);
+  if (!isValid) {
+    return null;
+  }
+
+  return doctor;
+};
+
+export const resetDoctorPasswordService = async (doctorId, options = {}) => {
+  if (!doctorId) {
+    const error = new Error('Debes indicar el profesional a actualizar');
+    error.status = 400;
+    throw error;
+  }
+
+  const doctor = await getDoctorByIdWithPassword(doctorId);
+  if (!doctor) {
+    const error = new Error('Profesional no encontrado');
+    error.status = 404;
+    throw error;
+  }
+
+  const plainPassword = options.password || generateRandomPassword(options.length || 12);
+  const hashedPassword = await hashPassword(plainPassword);
+  const updatedDoctor = await updateDoctorPassword(doctorId, hashedPassword);
+
+  return {
+    doctor: updatedDoctor,
+    password: plainPassword
+  };
+};
