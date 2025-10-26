@@ -6,6 +6,8 @@ import dotenv from 'dotenv';
 import morgan from 'morgan';
 import session from 'express-session';
 import MongoStore from 'connect-mongo';
+import { attachRequestContext } from './middlewares/requestContext.js';
+import { logger } from './logger/index.js';
 
 // Importar configuración de BD
 import connectDB from './config/database.js';
@@ -89,12 +91,7 @@ app.use(session({
 }));
 
 // Middleware para pasar datos de sesión y ruta actual a las vistas
-app.use((req, res, next) => {
-  res.locals.user = req.session.user || null;
-  res.locals.isAuthenticated = !!req.session.user;
-  res.locals.currentPath = req.path;
-  next();
-});
+app.use(attachRequestContext);
 
 // Rutas
 app.use('/', indexRoutes);
@@ -113,7 +110,7 @@ app.use((req, res) => {
 
 // Manejo de errores generales
 app.use((err, req, res, next) => {
-  console.error('Error:', err);
+  logger.error('Error:', err);
   res.status(err.status || 500).render('error', {
     title: 'Error',
     error: err.message || 'Ha ocurrido un error en el servidor'
@@ -122,8 +119,8 @@ app.use((err, req, res, next) => {
 
 // Iniciar servidor
 app.listen(PORT, '0.0.0.0', () => {
-  console.log('Servidor corriendo en http://localhost:' + PORT);
-  console.log('Entorno: ' + (process.env.NODE_ENV || 'development'));
+  logger.info('Servidor corriendo en http://localhost:' + PORT);
+  logger.info('Entorno: ' + (process.env.NODE_ENV || 'development'));
 });
 
 export default app;

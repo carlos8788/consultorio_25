@@ -119,6 +119,14 @@ Los usuarios se configuran en el archivo `.env` para mayor seguridad:
 - diagnostico
 - estado (pendiente, confirmado, cancelado, completado)
 
+### Doctor
+- userId (coincide con el usuario que inicia sesión)
+- nombre
+- apellido
+- especialidad
+- matrícula (opcional)
+- datos de contacto
+
 ## Rutas principales
 
 - `/` - Redirección al dashboard o login
@@ -139,6 +147,14 @@ Los usuarios se configuran en el archivo `.env` para mayor seguridad:
 - Sistema de roles (admin/user)
 - Protección contra compromiso de base de datos
 
+## Gestión por doctor
+
+- Cada usuario médico cuenta con un documento en la colección `Doctor` enlazado mediante `userId`.
+- Los pacientes y turnos registran el campo `doctor`, por lo que los usuarios con rol `user` solo pueden ver y modificar sus propios registros.
+- Los usuarios con rol `admin` siguen visualizando y gestionando toda la información.
+- En el primer inicio de sesión de un doctor marcado con `assignLegacyRecords` (actualmente Ana Melis Gutierrez) se migran automáticamente los pacientes y turnos que no tenían doctor asignado.
+- Para sumar nuevos profesionales basta con definir sus credenciales en `.env`, agregar su perfil en `authController` y, si es necesario, ejecutar una migración similar para sus registros.
+
 ## Próximos pasos / Mejoras sugeridas
 
 - [ ] Implementar sistema de autenticación completo (bcrypt, JWT)
@@ -150,6 +166,10 @@ Los usuarios se configuran en el archivo `.env` para mayor seguridad:
 - [ ] Implementar historial médico detallado
 - [ ] Agregar dashboard con estadísticas
 - [ ] Implementar sistema de respaldos automáticos
+
+## Documentación adicional
+
+- **Arquitectura de capas:** consulta `docs/ARQUITECTURA.md` para entender cómo se organizan repositorios, servicios, DTOs, middlewares, validaciones, configuración, logging y manejo de imágenes.
 
 ## Licencia
 

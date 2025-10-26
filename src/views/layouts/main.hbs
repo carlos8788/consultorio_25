@@ -30,7 +30,7 @@
 
 <body class="index-page">
 
-  {{#if isAuthenticated}}
+  {{#if (or isAuthenticated showPublicHeader)}}
     {{> header}}
   {{/if}}
 

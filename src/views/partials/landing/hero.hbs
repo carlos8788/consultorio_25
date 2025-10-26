@@ -1,0 +1,60 @@
+<section id="hero" class="hero section dark-background">
+  <div class="container-fluid p-0">
+    <div class="hero-wrapper">
+      <div class="hero-image">
+        <img src="{{image}}" alt="{{imageAlt}}" class="img-fluid">
+      </div>
+
+      <div class="hero-content">
+        <div class="container">
+          <div class="row">
+            <div class="col-lg-7 col-md-10" data-aos="fade-right" data-aos-delay="100">
+              <div class="content-box">
+                <span class="badge-accent" data-aos="fade-up" data-aos-delay="150">{{badge}}</span>
+                <h1 data-aos="fade-up" data-aos-delay="200">{{title}}</h1>
+                <p data-aos="fade-up" data-aos-delay="250">{{description}}</p>
+
+                <div class="cta-group" data-aos="fade-up" data-aos-delay="300">
+                  {{#each ctas}}
+                    <a href="{{href}}" class="btn {{#if (eq variant 'outline')}}btn-outline{{else}}btn-primary{{/if}}">{{label}}</a>
+                  {{/each}}
+                </div>
+
+                <div class="info-badges" data-aos="fade-up" data-aos-delay="350">
+                  {{#each infoBadges}}
+                    <div class="badge-item">
+                      <i class="{{icon}}"></i>
+                      <div class="badge-content">
+                        <span>{{label}}</span>
+                        <strong>{{value}}</strong>
+                      </div>
+                    </div>
+                  {{/each}}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="features-wrapper">
+            <div class="row gy-4">
+              {{#each featureCards}}
+                <div class="col-lg-4">
+                  <div class="feature-item" data-aos="fade-up" data-aos-delay="{{delay}}">
+                    <div class="feature-icon">
+                      <i class="{{icon}}"></i>
+                    </div>
+                    <div class="feature-text">
+                      <h3>{{title}}</h3>
+                      <p>{{text}}</p>
+                    </div>
+                  </div>
+                </div>
+              {{/each}}
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+  </div>
+</section>

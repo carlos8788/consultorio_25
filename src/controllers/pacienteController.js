@@ -1,29 +1,41 @@
-import Paciente from '../models/Paciente.js';
+import {
+  listPacientes,
+  getPaciente,
+  createPaciente as createPacienteService,
+  updatePaciente as updatePacienteService,
+  deletePaciente as deletePacienteService
+} from '../services/pacienteService.js';
 import { buildPaginationData } from '../utils/pagination.js';
+import { logger } from '../logger/index.js';
+
+const isAdmin = (req) => req.context?.isAdmin || req.session?.user?.role === 'admin';
+
+const requireDoctorId = (req) => {
+  const doctorId = req.context?.doctorId || req.session?.user?.doctorId;
+  if (!doctorId) {
+    throw new Error('El usuario no tiene un médico asociado');
+  }
+  return doctorId;
+};
+
+const buildDoctorFilter = (req) => {
+  if (isAdmin(req)) {
+    return {};
+  }
+  return { doctor: requireDoctorId(req) };
+};
 
 export const getAllPacientes = async (req, res) => {
   try {
     const { page = 1, limit = 10, search = '' } = req.query;
-    
-    const query = search 
-      ? { 
-          $or: [
-            { nombre: { $regex: search, $options: 'i' } },
-            { apellido: { $regex: search, $options: 'i' } },
-            { dni: { $regex: search, $options: 'i' } }
-          ]
-        }
-      : {};
 
-    const options = {
-      page: parseInt(page),
-      limit: parseInt(limit),
-      sort: { apellido: 1, nombre: 1 },
-      populate: 'obraSocial',
-      lean: true
-    };
+    const pacientes = await listPacientes({
+      search,
+      page,
+      limit,
+      doctorFilter: buildDoctorFilter(req)
+    });
 
-    const pacientes = await Paciente.paginate(query, options);
     const { pagination, paginationDisplay, paginationQuery } = buildPaginationData(
       pacientes,
       req.query
@@ -38,7 +50,7 @@ export const getAllPacientes = async (req, res) => {
       pagination
     });
   } catch (error) {
-    console.error('Error al obtener pacientes:', error);
+    logger.error('Error al obtener pacientes:', error);
     res.status(500).render('error', { error: 'Error al obtener pacientes' });
   }
 };
@@ -46,7 +58,7 @@ export const getAllPacientes = async (req, res) => {
 export const getPacienteById = async (req, res) => {
   try {
     const { id } = req.params;
-    const paciente = await Paciente.findById(id).populate('obraSocial').lean();
+    const paciente = await getPaciente({ _id: id, ...buildDoctorFilter(req) });
 
     if (!paciente) {
       return res.status(404).render('error', { error: 'Paciente no encontrado' });
@@ -57,7 +69,7 @@ export const getPacienteById = async (req, res) => {
       paciente
     });
   } catch (error) {
-    console.error('Error al obtener paciente:', error);
+    logger.error('Error al obtener paciente:', error);
     res.status(500).render('error', { error: 'Error al obtener paciente' });
   }
 };
@@ -65,8 +77,9 @@ export const getPacienteById = async (req, res) => {
 export const createPaciente = async (req, res) => {
   try {
     const { nombre, apellido, dni, telefono, obraSocial, observaciones, edad, fechaNacimiento } = req.body;
-    
-    const newPaciente = new Paciente({
+    const doctorId = isAdmin(req) ? (req.body.doctor || req.context?.doctorId || req.session?.user?.doctorId || null) : requireDoctorId(req);
+
+    await createPacienteService({
       nombre,
       apellido,
       dni,
@@ -74,13 +87,13 @@ export const createPaciente = async (req, res) => {
       obraSocial: obraSocial || undefined,
       observaciones,
       edad,
-      fechaNacimiento
+      fechaNacimiento,
+      doctor: doctorId
     });
 
-    await newPaciente.save();
     res.redirect('/pacientes');
   } catch (error) {
-    console.error('Error al crear paciente:', error);
+    logger.error('Error al crear paciente:', error);
     res.status(500).render('error', { error: 'Error al crear paciente' });
   }
 };
@@ -90,10 +103,9 @@ export const updatePaciente = async (req, res) => {
     const { id } = req.params;
     const { nombre, apellido, dni, telefono, obraSocial, observaciones, edad, fechaNacimiento } = req.body;
 
-    const paciente = await Paciente.findByIdAndUpdate(
-      id,
-      { nombre, apellido, dni, telefono, obraSocial, observaciones, edad, fechaNacimiento },
-      { new: true, runValidators: true }
+    const paciente = await updatePacienteService(
+      { _id: id, ...buildDoctorFilter(req) },
+      { nombre, apellido, dni, telefono, obraSocial, observaciones, edad, fechaNacimiento }
     );
 
     if (!paciente) {
@@ -102,7 +114,7 @@ export const updatePaciente = async (req, res) => {
 
     res.redirect('/pacientes');
   } catch (error) {
-    console.error('Error al actualizar paciente:', error);
+    logger.error('Error al actualizar paciente:', error);
     res.status(500).render('error', { error: 'Error al actualizar paciente' });
   }
 };
@@ -110,7 +122,7 @@ export const updatePaciente = async (req, res) => {
 export const deletePaciente = async (req, res) => {
   try {
     const { id } = req.params;
-    const paciente = await Paciente.findByIdAndDelete(id);
+    const paciente = await deletePacienteService({ _id: id, ...buildDoctorFilter(req) });
 
     if (!paciente) {
       return res.status(404).json({ error: 'Paciente no encontrado' });
@@ -118,7 +130,7 @@ export const deletePaciente = async (req, res) => {
 
     res.redirect('/pacientes');
   } catch (error) {
-    console.error('Error al eliminar paciente:', error);
+    logger.error('Error al eliminar paciente:', error);
     res.status(500).json({ error: 'Error al eliminar paciente' });
   }
 };

@@ -1,0 +1,29 @@
+<section id="cta" class="emergency-info section light-background">
+  <div class="container section-title" data-aos="fade-up">
+    <h2>{{title}}</h2>
+    <p>{{subtitle}}</p>
+  </div>
+
+  <div class="container" data-aos="fade-up" data-aos-delay="100">
+    <div class="row">
+      <div class="col-lg-8 col-md-10 mx-auto">
+        <div class="emergency-alert" data-aos="zoom-in" data-aos-delay="150">
+          <div class="alert-icon">
+            <i class="{{card.icon}}"></i>
+          </div>
+          <div class="alert-content">
+            <h4>{{card.title}}</h4>
+            <p>{{card.text}}</p>
+          </div>
+          <div class="alert-action">
+            {{#each card.actions}}
+              <a href="{{href}}" class="btn {{className}}">
+                <i class="{{icon}} me-2"></i>{{label}}
+              </a>
+            {{/each}}
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>

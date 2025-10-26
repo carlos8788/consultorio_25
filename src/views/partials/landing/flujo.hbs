@@ -1,0 +1,56 @@
+<section id="flujo" class="call-to-action section">
+  <div class="container" data-aos="fade-up" data-aos-delay="100">
+    <div class="row justify-content-center">
+      <div class="col-lg-8 text-center">
+        <h2 data-aos="fade-up" data-aos-delay="200">{{title}}</h2>
+        <p data-aos="fade-up" data-aos-delay="250">{{description}}</p>
+
+        <div class="cta-buttons" data-aos="fade-up" data-aos-delay="300">
+          {{#each ctas}}
+            <a href="{{href}}" class="{{className}}">{{label}}</a>
+          {{/each}}
+        </div>
+      </div>
+    </div>
+
+    <div class="row features-row" data-aos="fade-up" data-aos-delay="400">
+      {{#each features}}
+        <div class="col-lg-4 col-md-6 mb-4">
+          <div class="feature-card">
+            <div class="icon-wrapper">
+              <i class="{{icon}}"></i>
+            </div>
+            <h5>{{title}}</h5>
+            <p>{{text}}</p>
+            <a href="{{href}}" class="feature-link">
+              <span>{{linkLabel}}</span>
+              <i class="bi bi-arrow-right"></i>
+            </a>
+          </div>
+        </div>
+      {{/each}}
+    </div>
+
+    <div class="emergency-alert" data-aos="zoom-in" data-aos-delay="500">
+      <div class="row align-items-center">
+        <div class="col-lg-8">
+          <div class="emergency-content">
+            <div class="emergency-icon">
+              <i class="{{alert.icon}}"></i>
+            </div>
+            <div class="emergency-text">
+              <h4>{{alert.title}}</h4>
+              <p>{{alert.text}}</p>
+            </div>
+          </div>
+        </div>
+        <div class="col-lg-4 text-end">
+          <a href="{{alert.href}}" class="emergency-btn">
+            <i class="{{alert.icon}}"></i>
+            {{alert.cta}}
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>

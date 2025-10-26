@@ -25,6 +25,10 @@ const turnoSchema = new Schema({
     type: String,
     enum: ['pendiente', 'confirmado', 'cancelado', 'completado'],
     default: 'pendiente'
+  },
+  doctor: {
+    type: Schema.Types.ObjectId,
+    ref: 'Doctor'
   }
 }, {
   timestamps: true,
@@ -37,6 +41,7 @@ turnoSchema.plugin(mongoosePaginate);
 // Índices
 turnoSchema.index({ fecha: 1, hora: 1 });
 turnoSchema.index({ paciente: 1 });
+turnoSchema.index({ doctor: 1 });
 
 const Turno = model('Turno', turnoSchema);
 

@@ -38,6 +38,10 @@ const pacienteSchema = new Schema({
   fechaNacimiento: {
     type: String,
     default: '2024-01-01'
+  },
+  doctor: {
+    type: Schema.Types.ObjectId,
+    ref: 'Doctor'
   }
 }, {
   timestamps: true,
@@ -50,6 +54,7 @@ pacienteSchema.plugin(mongoosePaginate);
 // Índices
 pacienteSchema.index({ dni: 1 });
 pacienteSchema.index({ apellido: 1, nombre: 1 });
+pacienteSchema.index({ doctor: 1 });
 
 // Virtual para nombre completo
 pacienteSchema.virtual('nombreCompleto').get(function() {

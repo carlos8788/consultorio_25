@@ -1,85 +1,53 @@
-import Turno from '../models/Turno.js';
+import {
+  listTurnos,
+  getNextFechaConTurnos,
+  getTurno,
+  createTurno as createTurnoService,
+  updateTurno as updateTurnoService,
+  deleteTurno as deleteTurnoService,
+  turnoHelpers
+} from '../services/turnoService.js';
 import { buildPaginationData } from '../utils/pagination.js';
+import { logger } from '../logger/index.js';
 
-const formatFechaCorta = (fecha) => {
-  if (!fecha) return '';
-  const partes = fecha.split('-');
+const isAdmin = (req) => req.context?.isAdmin || req.session?.user?.role === 'admin';
 
-  if (partes.length !== 3) {
-    return fecha;
+const requireDoctorId = (req) => {
+  const doctorId = req.context?.doctorId || req.session?.user?.doctorId;
+  if (!doctorId) {
+    throw new Error('El usuario no tiene un médico asociado');
   }
-
-  const [anio, mes, dia] = partes;
-  if (!anio || !mes || !dia) {
-    return fecha;
-  }
-
-  return `${dia.padStart(2, '0')}/${mes.padStart(2, '0')}/${anio.slice(-2)}`;
+  return doctorId;
 };
 
-const diagnosticoResaltaFila = (diagnostico) => {
-  if (!diagnostico) return false;
-
-  const normalizado = diagnostico
-    .toString()
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .toLowerCase();
-  return ['practica', 'limpieza', 'práctica'].some((palabra) => normalizado.includes(palabra));
+const buildDoctorFilter = (req) => {
+  if (isAdmin(req)) {
+    return {};
+  }
+  return { doctor: requireDoctorId(req) };
 };
 
 export const getAllTurnos = async (req, res) => {
   try {
     let { page = 1, limit = 10, fecha = '' } = req.query;
-    
-    // Si no se especifica fecha, buscar la fecha más próxima con turnos
+    const doctorFilter = buildDoctorFilter(req);
+
     if (!fecha) {
       const hoy = new Date().toISOString().split('T')[0];
-      const proximoTurno = await Turno.findOne({ fecha: { $gte: hoy } })
-        .sort({ fecha: 1 })
-        .lean();
-      
-      if (proximoTurno) {
-        fecha = proximoTurno.fecha;
+      const proximaFecha = await getNextFechaConTurnos({ fechaBase: hoy, doctorFilter });
+      if (proximaFecha) {
+        fecha = proximaFecha;
       }
     }
 
-    const query = fecha 
-      ? { fecha }
-      : {};
-
-    const options = {
-      page: parseInt(page),
-      limit: parseInt(limit),
-      sort: { fecha: -1, hora: 1 },
-      populate: {
-        path: 'paciente',
-        populate: {
-          path: 'obraSocial'
-        }
-      },
-      lean: true
-    };
-
-    const turnos = await Turno.paginate(query, options);
-
-    const turnosFormateados = turnos.docs.map((turno) => {
-      const resaltarFila = diagnosticoResaltaFila(turno.diagnostico);
-      const turnoLibre = !turno.paciente || !turno.paciente.apellido;
-      const rowClass = [
-        resaltarFila ? 'bg-practica' : '',
-        turnoLibre ? 'bg-turno-libre' : ''
-      ].filter(Boolean).join(' ');
-
-      return {
-        ...turno,
-        fechaFormateada: formatFechaCorta(turno.fecha),
-        resaltarFila,
-        turnoLibre,
-        rowClass
-      };
+    const turnos = await listTurnos({
+      page,
+      limit,
+      fecha,
+      doctorFilter
     });
-    const fechaActualDisplay = fecha ? formatFechaCorta(fecha) : '';
+
+    const fechaActualDisplay = fecha ? turnoHelpers.formatFechaCorta(fecha) : '';
     const queryParams = {
       ...req.query,
       ...(fecha ? { fecha } : {})
@@ -91,7 +59,7 @@ export const getAllTurnos = async (req, res) => {
 
     res.render('pages/turnos', {
       title: 'Turnos',
-      turnos: turnosFormateados,
+      turnos: turnos.docs,
       fechaActual: fecha,
       fechaActualDisplay,
       paginationQuery,
@@ -99,7 +67,7 @@ export const getAllTurnos = async (req, res) => {
       pagination
     });
   } catch (error) {
-    console.error('Error al obtener turnos:', error);
+    logger.error('Error al obtener turnos:', error);
     res.status(500).render('error', { error: 'Error al obtener turnos' });
   }
 };
@@ -107,14 +75,7 @@ export const getAllTurnos = async (req, res) => {
 export const getTurnoById = async (req, res) => {
   try {
     const { id } = req.params;
-    const turno = await Turno.findById(id)
-      .populate({
-        path: 'paciente',
-        populate: {
-          path: 'obraSocial'
-        }
-      })
-      .lean();
+    const turno = await getTurno({ _id: id, ...buildDoctorFilter(req) });
 
     if (!turno) {
       return res.status(404).render('error', { error: 'Turno no encontrado' });
@@ -125,7 +86,7 @@ export const getTurnoById = async (req, res) => {
       turno
     });
   } catch (error) {
-    console.error('Error al obtener turno:', error);
+    logger.error('Error al obtener turno:', error);
     res.status(500).render('error', { error: 'Error al obtener turno' });
   }
 };
@@ -133,19 +94,20 @@ export const getTurnoById = async (req, res) => {
 export const createTurno = async (req, res) => {
   try {
     const { paciente, fecha, hora, diagnostico, estado } = req.body;
-    
-    const newTurno = new Turno({
+    const doctorId = isAdmin(req) ? (req.body.doctor || req.context?.doctorId || req.session?.user?.doctorId || null) : requireDoctorId(req);
+
+    await createTurnoService({
       paciente: paciente || undefined,
       fecha,
       hora,
       diagnostico,
-      estado
+      estado,
+      doctor: doctorId
     });
 
-    await newTurno.save();
     res.redirect('/turnos');
   } catch (error) {
-    console.error('Error al crear turno:', error);
+    logger.error('Error al crear turno:', error);
     res.status(500).render('error', { error: 'Error al crear turno' });
   }
 };
@@ -155,10 +117,9 @@ export const updateTurno = async (req, res) => {
     const { id } = req.params;
     const { paciente, fecha, hora, diagnostico, estado } = req.body;
 
-    const turno = await Turno.findByIdAndUpdate(
-      id,
-      { paciente, fecha, hora, diagnostico, estado },
-      { new: true, runValidators: true }
+    const turno = await updateTurnoService(
+      { _id: id, ...buildDoctorFilter(req) },
+      { paciente, fecha, hora, diagnostico, estado }
     );
 
     if (!turno) {
@@ -167,7 +128,7 @@ export const updateTurno = async (req, res) => {
 
     res.redirect('/turnos');
   } catch (error) {
-    console.error('Error al actualizar turno:', error);
+    logger.error('Error al actualizar turno:', error);
     res.status(500).render('error', { error: 'Error al actualizar turno' });
   }
 };
@@ -175,7 +136,7 @@ export const updateTurno = async (req, res) => {
 export const deleteTurno = async (req, res) => {
   try {
     const { id } = req.params;
-    const turno = await Turno.findByIdAndDelete(id);
+    const turno = await deleteTurnoService({ _id: id, ...buildDoctorFilter(req) });
 
     if (!turno) {
       return res.status(404).json({ error: 'Turno no encontrado' });
@@ -183,9 +144,7 @@ export const deleteTurno = async (req, res) => {
 
     res.redirect('/turnos');
   } catch (error) {
-    console.error('Error al eliminar turno:', error);
+    logger.error('Error al eliminar turno:', error);
     res.status(500).json({ error: 'Error al eliminar turno' });
   }
 };
-
-
