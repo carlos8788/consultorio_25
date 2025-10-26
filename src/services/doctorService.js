@@ -1,7 +1,8 @@
 import {
   findByUserId,
   createDoctor,
-  getDoctorById
+  getDoctorById,
+  listDoctors as listDoctorsRepo
 } from '../repositories/doctorRepository.js';
 import {
   assignDoctorToLegacyPatients,
@@ -51,3 +52,5 @@ export const doctorLegacyFilters = {
   pacientes: legacyPacienteFilter,
   turnos: legacyTurnoFilter
 };
+
+export const listDoctors = () => listDoctorsRepo();

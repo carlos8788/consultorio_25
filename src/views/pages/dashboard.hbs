@@ -65,14 +65,32 @@
   </div> --}}
 
   <div class="container">
+    {{#if isAdmin}}
+      <div class="alert alert-info d-flex align-items-center gap-2 mb-4" role="alert">
+        <i class="bi bi-info-circle-fill"></i>
+        <span>Seleccioná un médico antes de acceder a la gestión de pacientes o turnos para evitar cargar todo el padrón.</span>
+        <button
+          type="button"
+          class="btn btn-outline-primary btn-sm ms-auto js-doctor-gate"
+          data-target-url="/pacientes"
+          data-module-label="continuar con la gestión">
+          Seleccionar médico
+        </button>
+      </div>
+    {{/if}}
     <div class="row gy-4">
 
       <div class="col-lg-4 col-md-6" data-aos="fade-up" data-aos-delay="100">
         <div class="service-item position-relative">
           <div class="icon">
-            <i class="fas fa-user-injured fs-2"></i>
+            <i class="fas fa-user-injured fs-2 texpr text-primary"></i>
           </div>
-          <a href="/pacientes" class="stretched-link">
+          <a href="/pacientes"
+             class="stretched-link{{#if isAdmin}} js-doctor-gate{{/if}}"
+             {{#if isAdmin}}
+             data-target-url="/pacientes"
+             data-module-label="gestión de pacientes"
+             {{/if}}>
             <h3>Gestión de Pacientes</h3>
           </a>
           <p>Registro completo de pacientes con datos personales, obra social y observaciones médicas. Búsqueda rápida por nombre, apellido o DNI.</p>
@@ -82,9 +100,14 @@
       <div class="col-lg-4 col-md-6" data-aos="fade-up" data-aos-delay="200">
         <div class="service-item position-relative">
           <div class="icon">
-            <i class="fas fa-calendar-alt fs-2"></i>
+            <i class="fas fa-calendar-alt fs-2 text-primary"></i>
           </div>
-          <a href="/turnos" class="stretched-link">
+          <a href="/turnos"
+             class="stretched-link{{#if isAdmin}} js-doctor-gate{{/if}}"
+             {{#if isAdmin}}
+             data-target-url="/turnos"
+             data-module-label="agenda de turnos"
+             {{/if}}>
             <h3>Agenda de Turnos</h3>
           </a>
           <p>Sistema completo de gestión de turnos médicos. Asigne, modifique y controle las citas. Filtros por fecha y estado.</p>
@@ -94,7 +117,7 @@
       <div class="col-lg-4 col-md-6" data-aos="fade-up" data-aos-delay="300">
         <div class="service-item position-relative">
           <div class="icon">
-            <i class="fas fa-heartbeat fs-2"></i>
+            <i class="fas fa-heartbeat fs-2 text-primary"></i>
           </div>
           <a href="/obras-sociales" class="stretched-link">
             <h3>Obras Sociales</h3>
@@ -106,7 +129,7 @@
       <div class="col-lg-4 col-md-6" data-aos="fade-up" data-aos-delay="400">
         <div class="service-item position-relative">
           <div class="icon">
-            <i class="fas fa-file-medical fs-2"></i>
+            <i class="fas fa-file-medical fs-2 text-primary"></i>
           </div>
           <a href="#" class="stretched-link">
             <h3>Historias Clínicas</h3>
@@ -118,7 +141,7 @@
       <div class="col-lg-4 col-md-6" data-aos="fade-up" data-aos-delay="500">
         <div class="service-item position-relative">
           <div class="icon">
-            <i class="fas fa-chart-line fs-2"></i>
+            <i class="fas fa-chart-line fs-2 text-primary"></i>
           </div>
           <a href="#" class="stretched-link">
             <h3>Estadísticas</h3>
@@ -130,7 +153,7 @@
       <div class="col-lg-4 col-md-6" data-aos="fade-up" data-aos-delay="600">
         <div class="service-item position-relative">
           <div class="icon">
-            <i class="fas fa-cog fs-2"></i>
+            <i class="fas fa-cog fs-2 text-primary"></i>
           </div>
           <a href="#" class="stretched-link">
             <h3>Configuración</h3>
@@ -140,5 +163,196 @@
       </div>
 
     </div>
+
   </div>
 </section>
+
+{{#if isAdmin}}
+<div class="modal fade" id="selectDoctorModal" tabindex="-1" aria-labelledby="selectDoctorModalLabel" aria-hidden="true" data-fetch-url="/api/doctores">
+  <div class="modal-dialog">
+    <form class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="selectDoctorModalLabel">Seleccionar médico</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+      </div>
+      <div class="modal-body">
+        <div class="mb-3 js-doctor-select d-none">
+          <label for="doctorGateSelect" class="form-label">Elegí el profesional</label>
+          <select id="doctorGateSelect" name="doctorId" class="form-select" disabled required>
+            <option value="">Seleccioná un profesional</option>
+          </select>
+        </div>
+        <div class="alert alert-warning mb-0 d-none js-no-doctors" role="alert">
+          Todavía no hay médicos cargados en el sistema. Creá al menos uno para acceder a estos módulos.
+        </div>
+        <div class="alert alert-danger mt-3 d-none js-doctor-error" role="alert"></div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+        <button type="submit" class="btn btn-primary js-doctor-submit" disabled>Ir al módulo</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+  document.addEventListener('DOMContentLoaded', () => {
+    const links = document.querySelectorAll('.js-doctor-gate');
+    if (!links.length) {
+      return;
+    }
+
+    const modalElement = document.getElementById('selectDoctorModal');
+    if (!modalElement || !window.bootstrap || !window.bootstrap.Modal) {
+      return;
+    }
+
+    const fetchUrl = modalElement.dataset.fetchUrl;
+    const modal = new window.bootstrap.Modal(modalElement);
+    const form = modalElement.querySelector('form');
+    const doctorSelectWrapper = modalElement.querySelector('.js-doctor-select');
+    const doctorSelect = modalElement.querySelector('#doctorGateSelect');
+    const noDoctorsAlert = modalElement.querySelector('.js-no-doctors');
+    const errorAlert = modalElement.querySelector('.js-doctor-error');
+    const submitButton = modalElement.querySelector('.js-doctor-submit');
+    const modalLabel = modalElement.querySelector('#selectDoctorModalLabel');
+
+    let targetUrl = null;
+    let cachedDoctors = null;
+    let loadingPromise = null;
+
+    const setError = (message) => {
+      if (!errorAlert) return;
+      if (message) {
+        errorAlert.textContent = message;
+        errorAlert.classList.remove('d-none');
+      } else {
+        errorAlert.classList.add('d-none');
+        errorAlert.textContent = '';
+      }
+    };
+
+    const populateDoctorSelect = (doctors = []) => {
+      if (!doctorSelect) return;
+      doctorSelect.innerHTML = '<option value="">Seleccioná un profesional</option>';
+      doctors.forEach((doctor) => {
+        const option = document.createElement('option');
+        option.value = doctor.id;
+        option.textContent = doctor.label;
+        doctorSelect.appendChild(option);
+      });
+    };
+
+    const toggleState = (hasDoctors) => {
+      if (!doctorSelectWrapper || !noDoctorsAlert || !submitButton || !doctorSelect) {
+        return;
+      }
+      if (hasDoctors) {
+        doctorSelectWrapper.classList.remove('d-none');
+        doctorSelect.disabled = false;
+        noDoctorsAlert.classList.add('d-none');
+        submitButton.disabled = false;
+      } else {
+        doctorSelectWrapper.classList.add('d-none');
+        doctorSelect.disabled = true;
+        noDoctorsAlert.classList.remove('d-none');
+        submitButton.disabled = true;
+      }
+    };
+
+    const fetchDoctors = async () => {
+      if (cachedDoctors) {
+        return cachedDoctors;
+      }
+      if (!loadingPromise) {
+        loadingPromise = fetch(fetchUrl, { headers: { 'Accept': 'application/json' } })
+          .then(async (response) => {
+            if (!response.ok) {
+              throw new Error('No se pudo cargar la lista de médicos');
+            }
+            const data = await response.json();
+            cachedDoctors = data.doctors || [];
+            return cachedDoctors;
+          })
+          .catch((error) => {
+            setError(error.message || 'Ocurrió un error inesperado');
+            return [];
+          });
+      }
+      return loadingPromise;
+    };
+
+    const prepareModal = async () => {
+      setError('');
+      if (submitButton) {
+        submitButton.disabled = true;
+      }
+      if (doctorSelect) {
+        doctorSelect.value = '';
+      }
+
+      const doctors = await fetchDoctors();
+      populateDoctorSelect(doctors);
+      toggleState(doctors.length > 0);
+      if (submitButton && doctors.length > 0) {
+        submitButton.disabled = false;
+      }
+    };
+
+    links.forEach((link) => {
+      link.addEventListener('click', async (event) => {
+        event.preventDefault();
+        targetUrl = link.dataset.targetUrl || link.getAttribute('href') || window.location.pathname;
+        const label = link.dataset.moduleLabel || 'continuar';
+        if (modalLabel) {
+          modalLabel.textContent = `Elegí un médico para ${label}`;
+        }
+        await prepareModal();
+        modal.show();
+      });
+    });
+
+    if (!form) {
+      return;
+    }
+
+    form.addEventListener('submit', async (event) => {
+      event.preventDefault();
+      if (!submitButton || submitButton.disabled) {
+        return;
+      }
+      if (!doctorSelect || !doctorSelect.value) {
+        doctorSelect?.focus();
+        return;
+      }
+
+      const doctorId = doctorSelect.value;
+      submitButton.disabled = true;
+      setError('');
+
+      try {
+        const response = await fetch('/api/context/doctor', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json'
+          },
+          body: JSON.stringify({ doctorId })
+        });
+
+        if (!response.ok) {
+          const payload = await response.json().catch(() => ({}));
+          throw new Error(payload.error || 'No se pudo guardar la selección');
+        }
+
+        const url = new URL(targetUrl || window.location.pathname, window.location.origin);
+        url.searchParams.set('doctorId', doctorId);
+        window.location.href = url.toString();
+      } catch (error) {
+        setError(error.message);
+        submitButton.disabled = false;
+      }
+    });
+  });
+</script>
+{{/if}}

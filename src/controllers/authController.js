@@ -39,8 +39,14 @@ export const logout = (req, res) => {
 };
 
 export const showDashboard = (req, res) => {
-  res.render('pages/dashboard', {
-    title: 'Dashboard',
-    user: req.session.user
-  });
+  try {
+    res.render('pages/dashboard', {
+      title: 'Dashboard',
+      user: req.session.user,
+      isAdmin: req.session?.user?.role === 'admin'
+    });
+  } catch (error) {
+    logger.error('Error al mostrar dashboard:', error);
+    res.status(500).render('error', { error: 'Error al cargar el dashboard' });
+  }
 };

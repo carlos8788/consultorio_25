@@ -3,7 +3,8 @@ import {
   findPaciente,
   createPaciente as createPacienteRepo,
   updatePaciente as updatePacienteRepo,
-  deletePaciente as deletePacienteRepo
+  deletePaciente as deletePacienteRepo,
+  addDoctorReference
 } from '../repositories/pacienteRepository.js';
 import { toPacienteListDTO } from '../dtos/pacienteDto.js';
 
@@ -28,7 +29,7 @@ export const listPacientes = async ({ search, page, limit, doctorFilter }) => {
     page: parseInt(page),
     limit: parseInt(limit),
     sort: { apellido: 1, nombre: 1 },
-    populate: ['obraSocial', 'doctor'],
+    populate: ['obraSocial', 'doctor', 'doctores'],
     lean: true
   };
 
@@ -46,3 +47,10 @@ export const createPaciente = (data) => createPacienteRepo(data);
 export const updatePaciente = (filter, data) => updatePacienteRepo(filter, data);
 
 export const deletePaciente = (filter) => deletePacienteRepo(filter);
+
+export const registerDoctorForPaciente = (pacienteId, doctorId) => {
+  if (!pacienteId || !doctorId) {
+    return null;
+  }
+  return addDoctorReference(pacienteId, doctorId);
+};
