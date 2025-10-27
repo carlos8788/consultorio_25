@@ -6,6 +6,8 @@ import dotenv from 'dotenv';
 import morgan from 'morgan';
 import session from 'express-session';
 import MongoStore from 'connect-mongo';
+import connectLivereload from 'connect-livereload';
+import livereload from 'livereload';
 import { attachRequestContext } from './middlewares/requestContext.js';
 import { logger } from './logger/index.js';
 
@@ -20,6 +22,7 @@ import pacienteRoutes from './routes/pacienteRoutes.js';
 import turnoRoutes from './routes/turnoRoutes.js';
 import apiRoutes from './routes/apiRoutes.js';
 import doctorRoutes from './routes/doctorRoutes.js';
+import configRoutes from './routes/configRoutes.js';
 
 // Configuración de __dirname para ES6
 const __filename = fileURLToPath(import.meta.url);
@@ -31,6 +34,30 @@ dotenv.config();
 // Crear app de Express
 const app = express();
 const PORT = process.env.PORT || 3000;
+
+// Configurar LiveReload en desarrollo
+const isDevelopment = process.env.NODE_ENV !== 'production';
+if (isDevelopment) {
+  const livereloadServer = livereload.createServer({
+    exts: ['hbs', 'js', 'css', 'html'],
+    delay: 500
+  });
+
+  const publicPath = path.join(__dirname, '../public');
+  const viewsPath = path.join(__dirname, 'views');
+  const srcPath = path.join(__dirname);
+
+  livereloadServer.watch([publicPath, viewsPath, srcPath]);
+
+  livereloadServer.server.once('connection', () => {
+    setTimeout(() => {
+      livereloadServer.refresh('/');
+    }, 100);
+  });
+
+  app.use(connectLivereload());
+  logger.info('LiveReload activado - observando cambios en archivos');
+}
 
 // Conectar a la base de datos
 connectDB();
@@ -102,6 +129,7 @@ app.use('/obras-sociales', obraSocialRoutes);
 app.use('/pacientes', pacienteRoutes);
 app.use('/turnos', turnoRoutes);
 app.use('/', doctorRoutes);
+app.use('/', configRoutes);
 app.use('/api', apiRoutes);
 
 // Manejo de errores 404

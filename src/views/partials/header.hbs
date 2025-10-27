@@ -1,7 +1,7 @@
 <header id="header" class="header sticky-top bg-light">
   <div class="branding d-flex align-items-center">
     <div class="container-fluid container-xl position-relative d-flex align-items-center justify-content-between">
-      <a href="{{#if isAuthenticated}}/landing#hero{{else}}/#hero{{/if}}" class="logo d-flex align-items-center me-auto me-xl-0">
+      <a href="{{#if isAuthenticated}}/landing{{else}}/#hero{{/if}}" class="logo d-flex align-items-center me-auto me-xl-0">
         <i class="bi bi-hospital-fill fs-1 me-2"></i>
         <h1 class="sitename">Consultorio</h1>
       </a>
@@ -20,7 +20,9 @@
               <a href="#"><span>{{user.username}}</span> <i class="bi bi-chevron-down toggle-dropdown"></i></a>
               <ul>
                 <li><a href="#"><i class="bi bi-person"></i> Mi Perfil</a></li>
-                <li><a href="#"><i class="bi bi-gear"></i> Configuración</a></li>
+                {{#if isAdmin}}
+                  <li><a href="/config"><i class="bi bi-gear"></i> Configuración</a></li>
+                {{/if}}
                 <li><hr class="dropdown-divider"></li>
                 <li><a href="/logout"><i class="bi bi-box-arrow-right"></i> Cerrar Sesión</a></li>
               </ul>

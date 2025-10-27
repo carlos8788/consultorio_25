@@ -128,26 +128,4 @@
   </div>
 {{/if}}
 
-<script>
-  document.addEventListener('DOMContentLoaded', () => {
-    const fechaInput = document.querySelector('form[action="/turnos"] input[name="fecha"]');
-
-    if (!fechaInput) {
-      return;
-    }
-
-    fechaInput.addEventListener('change', () => {
-      const form = fechaInput.form;
-      if (!form) {
-        return;
-      }
-
-      if (typeof form.requestSubmit === 'function') {
-        form.requestSubmit();
-      } else {
-        form.submit();
-      }
-    });
-  });
-</script>
-
+<script src="/js/turnos.js"></script>

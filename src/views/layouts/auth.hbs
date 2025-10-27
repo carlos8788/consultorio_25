@@ -23,42 +23,13 @@
 
   <!-- Main CSS File -->
   <link href="/css/main.css" rel="stylesheet">
-  
-  <style>
-    body {
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-      min-height: 100vh;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
-    .login-container {
-      max-width: 450px;
-      width: 100%;
-      padding: 20px;
-    }
-    .login-card {
-      background: white;
-      border-radius: 20px;
-      box-shadow: 0 10px 40px rgba(0,0,0,0.2);
-      overflow: hidden;
-    }
-    .login-header {
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-      color: white;
-      padding: 40px;
-      text-align: center;
-    }
-    .login-body {
-      padding: 40px;
-    }
-  </style>
+  <link href="/css/app.css" rel="stylesheet">
 </head>
 
-<body>
-  <div class="login-container">
+<body class="auth-shell">
+  <main class="auth-shell__viewport">
     {{{body}}}
-  </div>
+  </main>
 
   <!-- Vendor JS Files -->
   <script src="/vendor/bootstrap/js/bootstrap.bundle.min.js"></script>

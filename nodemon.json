@@ -1,0 +1,20 @@
+{
+  "watch": [
+    "src/**/*.js",
+    "src/**/*.hbs",
+    "public/**/*.js",
+    "public/**/*.css"
+  ],
+  "ext": "js,hbs,css,html",
+  "ignore": [
+    "node_modules/**",
+    "*.test.js",
+    "*.spec.js"
+  ],
+  "exec": "node src/app.js",
+  "env": {
+    "NODE_ENV": "development"
+  },
+  "delay": 500,
+  "verbose": false
+}

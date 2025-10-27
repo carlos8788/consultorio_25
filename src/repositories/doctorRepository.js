@@ -2,6 +2,7 @@ import Doctor from '../models/Doctor.js';
 
 export const findByUserId = (userId) => Doctor.findOne({ userId });
 
+// username is the userId
 export const findByUserIdWithPassword = (userId) =>
   Doctor.findOne({ userId }).select('+passwordHash');
 

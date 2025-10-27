@@ -1,0 +1,93 @@
+<section id="config" class="services section">
+  <div class="container">
+    <div class="row gy-4">
+
+      <!-- Profesionales (solo admin puede ingresar) -->
+      <div class="col-lg-4 col-md-6" data-aos="fade-up" data-aos-delay="100">
+        <div class="service-item position-relative">
+          <div class="icon">
+            <i class="bi bi-people fs-2 text-primary"></i>
+          </div>
+
+          {{#if isAdmin}}
+            <a href="/admin/doctores" class="stretched-link">
+              <h3>Profesionales</h3>
+            </a>
+            <p>Gestione los médicos registrados, sus especialidades y disponibilidad horaria.</p>
+          {{else}}
+            <a class="stretched-link disabled pe-none" aria-disabled="true" tabindex="-1">
+              <h3 class="text-muted">Profesionales</h3>
+            </a>
+            <p class="text-muted">Solo administradores pueden acceder a este módulo.</p>
+          {{/if}}
+        </div>
+      </div>
+
+      <!-- Especialidades médicas -->
+      <div class="col-lg-4 col-md-6" data-aos="fade-up" data-aos-delay="200">
+        <div class="service-item position-relative opacity-50">
+          <div class="icon">
+            <i class="bi bi-clipboard2-pulse fs-2"></i>
+          </div>
+          <a class="stretched-link disabled pe-none" aria-disabled="true" tabindex="-1">
+            <h3 class="text-muted">Especialidades Médicas</h3>
+          </a>
+          <p class="text-muted">Gestión del listado de especialidades médicas y su vinculación con los profesionales.</p>
+        </div>
+      </div>
+
+      <!-- Consultorios y horarios -->
+      <div class="col-lg-4 col-md-6" data-aos="fade-up" data-aos-delay="300">
+        <div class="service-item position-relative opacity-50">
+          <div class="icon">
+            <i class="bi bi-building fs-2"></i>
+          </div>
+          <a class="stretched-link disabled pe-none" aria-disabled="true" tabindex="-1">
+            <h3 class="text-muted">Consultorios y Horarios</h3>
+          </a>
+          <p class="text-muted">Configura salas, consultorios, horarios de atención y disponibilidad por día.</p>
+        </div>
+      </div>
+
+      <!-- Usuarios y roles -->
+      <div class="col-lg-4 col-md-6" data-aos="fade-up" data-aos-delay="400">
+        <div class="service-item position-relative opacity-50">
+          <div class="icon">
+            <i class="bi bi-person-gear fs-2"></i>
+          </div>
+          <a class="stretched-link disabled pe-none" aria-disabled="true" tabindex="-1">
+            <h3 class="text-muted">Usuarios y Roles</h3>
+          </a>
+          <p class="text-muted">Administra usuarios internos del sistema, sus roles y permisos.</p>
+        </div>
+      </div>
+
+      <!-- Parámetros del sistema -->
+      <div class="col-lg-4 col-md-6" data-aos="fade-up" data-aos-delay="500">
+        <div class="service-item position-relative opacity-50">
+          <div class="icon">
+            <i class="bi bi-sliders fs-2"></i>
+          </div>
+          <a class="stretched-link disabled pe-none" aria-disabled="true" tabindex="-1">
+            <h3 class="text-muted">Parámetros del Sistema</h3>
+          </a>
+          <p class="text-muted">Configuración general: nombre del consultorio, zona horaria, notificaciones, logo, etc.</p>
+        </div>
+      </div>
+
+      <!-- Seguridad y auditoría -->
+      <div class="col-lg-4 col-md-6" data-aos="fade-up" data-aos-delay="600">
+        <div class="service-item position-relative opacity-50">
+          <div class="icon">
+            <i class="bi bi-shield-lock fs-2"></i>
+          </div>
+          <a class="stretched-link disabled pe-none" aria-disabled="true" tabindex="-1">
+            <h3 class="text-muted">Seguridad y Auditoría</h3>
+          </a>
+          <p class="text-muted">Registra acciones de los usuarios, accesos y configuraciones de seguridad.</p>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</section>
