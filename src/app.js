@@ -37,10 +37,13 @@ const allowlist = Array.from(new Set([
   ...extraOrigins
 ])).filter(Boolean);
 
+const normalizeOrigin = (origin) => (origin ? origin.replace(/\/$/, '') : origin);
+const allowlistNormalized = new Set(allowlist.map(normalizeOrigin).filter(Boolean));
 const corsOptions = {
   origin(origin, callback) {
     if (!origin) return callback(null, true); // curl / health checks
-    if (allowlist.includes(origin)) {
+    const normalizedOrigin = normalizeOrigin(origin);
+    if (allowlistNormalized.has(normalizedOrigin)) {
       return callback(null, true);
     }
     return callback(new Error('Not allowed by CORS'));
