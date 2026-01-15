@@ -1,11 +1,29 @@
-export const toPacienteListDTO = (paciente) => ({
+import { getObservacionForProfessional } from '../utils/pacienteObservaciones.js';
+
+export const toPacienteSuggestionDTO = (paciente) => ({
+  id: paciente?._id?.toString() || paciente?.id || null,
+  nombre: paciente?.nombre || '',
+  apellido: paciente?.apellido || '',
+  dni: paciente?.dni || '',
+  telefono: paciente?.telefono || '',
+  fechaNacimiento: paciente?.fechaNacimiento || '',
+  obraSocial: paciente?.obraSocial
+    ? {
+        id: paciente.obraSocial?._id?.toString() || null,
+        nombre: paciente.obraSocial?.nombre || ''
+      }
+    : null
+});
+
+export const toPacienteListDTO = (paciente, { professionalId } = {}) => ({
   ...paciente,
-  doctorNombre: paciente?.doctor
-    ? `${paciente.doctor.nombre || ''} ${paciente.doctor.apellido || ''}`.trim()
+  observaciones: getObservacionForProfessional(paciente, professionalId),
+  professionalNombre: paciente?.professional
+    ? `${paciente.professional.nombre || ''} ${paciente.professional.apellido || ''}`.trim()
     : null,
-  doctoresResumen: Array.isArray(paciente?.doctores)
-    ? paciente.doctores
-        .map((doctor) => [doctor?.apellido, doctor?.nombre].filter(Boolean).join(', '))
+  professionalsResumen: Array.isArray(paciente?.professionals)
+    ? paciente.professionals
+        .map((professional) => [professional?.apellido, professional?.nombre].filter(Boolean).join(', '))
         .filter(Boolean)
         .join(' | ')
     : ''

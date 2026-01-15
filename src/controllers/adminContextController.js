@@ -1,23 +1,23 @@
-import { listDoctors, getDoctorByIdOrFail } from '../services/doctorService.js';
+import { listProfessionals, getProfessionalByIdOrFail } from '../services/professionalService.js';
 import {
-  ADMIN_DOCTOR_SESSION_KEY,
-  ADMIN_DOCTOR_NAME_SESSION_KEY
+  ADMIN_PROFESSIONAL_SESSION_KEY,
+  ADMIN_PROFESSIONAL_NAME_SESSION_KEY
 } from '../constants/contextKeys.js';
 
-const formatDoctorLabel = (doctor) => {
-  if (!doctor) return '';
-  const nombre = [doctor.apellido, doctor.nombre].filter(Boolean).join(', ');
-  const especialidad = doctor.especialidad ? ` · ${doctor.especialidad}` : '';
+const formatProfessionalLabel = (professional) => {
+  if (!professional) return '';
+  const nombre = [professional.apellido, professional.nombre].filter(Boolean).join(', ');
+  const especialidad = professional.especialidad ? ` · ${professional.especialidad}` : '';
   return `${nombre}${especialidad}`;
 };
 
-export const getDoctorsForContext = async (req, res) => {
+export const getProfessionalsForContext = async (req, res) => {
   try {
-    const doctors = await listDoctors();
+    const professionals = await listProfessionals();
     res.json({
-      doctors: doctors.map((doctor) => ({
-        id: doctor._id.toString(),
-        label: formatDoctorLabel(doctor)
+      professionals: professionals.map((professional) => ({
+        id: professional._id.toString(),
+        label: formatProfessionalLabel(professional)
       }))
     });
   } catch (error) {
@@ -25,28 +25,28 @@ export const getDoctorsForContext = async (req, res) => {
   }
 };
 
-export const setDoctorContext = async (req, res) => {
+export const setProfessionalContext = async (req, res) => {
   try {
-    const { doctorId } = req.body;
+    const { professionalId } = req.body;
 
-    if (!doctorId) {
-      return res.status(400).json({ error: 'Debes seleccionar un médico' });
+    if (!professionalId) {
+      return res.status(400).json({ error: 'Debes seleccionar un profesional' });
     }
 
-    const doctor = await getDoctorByIdOrFail(doctorId);
-    if (!doctor) {
-      return res.status(404).json({ error: 'Médico no encontrado' });
+    const professional = await getProfessionalByIdOrFail(professionalId);
+    if (!professional) {
+      return res.status(404).json({ error: 'Profesional no encontrado' });
     }
 
-    const doctorName = formatDoctorLabel(doctor);
+    const professionalName = formatProfessionalLabel(professional);
 
-    req.session[ADMIN_DOCTOR_SESSION_KEY] = doctorId;
-    req.session[ADMIN_DOCTOR_NAME_SESSION_KEY] = doctorName;
+    req.session[ADMIN_PROFESSIONAL_SESSION_KEY] = professionalId;
+    req.session[ADMIN_PROFESSIONAL_NAME_SESSION_KEY] = professionalName;
 
     res.json({
       success: true,
-      doctorId,
-      doctorName
+      professionalId,
+      professionalName
     });
   } catch (error) {
     res.status(500).json({ error: 'No se pudo guardar la selección', details: error.message });

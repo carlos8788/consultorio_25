@@ -1,17 +1,16 @@
 {
   "watch": [
     "src/**/*.js",
-    "src/**/*.hbs",
     "public/**/*.js",
     "public/**/*.css"
   ],
-  "ext": "js,hbs,css,html",
+  "ext": "js,css",
   "ignore": [
     "node_modules/**",
     "*.test.js",
     "*.spec.js"
   ],
-  "exec": "node src/app.js",
+  "exec": "node src/server.js",
   "env": {
     "NODE_ENV": "development"
   },

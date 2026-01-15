@@ -3,9 +3,14 @@ import mongoosePaginate from 'mongoose-paginate-v2';
 
 const turnoSchema = new Schema({
   paciente: {
-    type: Schema.Types.Mixed,
-    ref: 'User',
-    required: false
+    type: Schema.Types.ObjectId,
+    ref: 'Paciente',
+    required: false,
+    default: null
+  },
+  observacionesTurno: {
+    type: String,
+    trim: true
   },
   diagnostico: {
     type: String,
@@ -17,18 +22,26 @@ const turnoSchema = new Schema({
     trim: true
   },
   fecha: {
-    type: String,
-    required: [true, 'La fecha es obligatoria'],
-    trim: true
+    type: Date,
+    required: [true, 'La fecha es obligatoria']
   },
   estado: {
     type: String,
     enum: ['pendiente', 'confirmado', 'cancelado', 'completado'],
     default: 'pendiente'
   },
-  doctor: {
+  professional: {
     type: Schema.Types.ObjectId,
-    ref: 'Doctor'
+    ref: 'Professional'
+  },
+  deletedAt: {
+    type: Date,
+    default: null
+  },
+  deletedBy: {
+    type: String,
+    trim: true,
+    default: null
   }
 }, {
   timestamps: true,
@@ -41,7 +54,8 @@ turnoSchema.plugin(mongoosePaginate);
 // Índices
 turnoSchema.index({ fecha: 1, hora: 1 });
 turnoSchema.index({ paciente: 1 });
-turnoSchema.index({ doctor: 1 });
+turnoSchema.index({ professional: 1 });
+turnoSchema.index({ deletedAt: 1 });
 
 const Turno = model('Turno', turnoSchema);
 

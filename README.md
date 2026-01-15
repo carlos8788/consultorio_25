@@ -27,26 +27,23 @@ Sistema de gestión para consultorios médicos desarrollado con Express.js, Hand
 
 ```
 CONSULTORIO_25/
-├── src/
-│   ├── config/          # Configuraciones (BD)
-│   ├── models/          # Modelos de Mongoose
-│   ├── controllers/     # Controladores
-│   ├── routes/          # Rutas
-│   ├── middlewares/     # Middlewares
-│   ├── validators/      # Validadores
-│   ├── views/           # Vistas de Handlebars
-│   │   ├── layouts/     # Layouts
-│   │   ├── partials/    # Componentes reutilizables
-│   │   └── pages/       # Páginas
-│   └── app.js           # Archivo principal
-├── public/              # Archivos estáticos
-│   ├── css/
-│   ├── js/
-│   └── img/
-├── .env                 # Variables de entorno
-├── .env.example         # Ejemplo de variables de entorno
-├── package.json
-└── README.md
+|-- api/
+|   `-- index.js          # Handler serverless (Vercel) que usa Express
+|-- src/
+|   |-- app.js            # Configuración de Express (sin listen)
+|   |-- server.js         # Entrada local: conecta a Mongo y arranca Express
+|   |-- config/           # Configuraciones (BD)
+|   |-- models/           # Modelos de Mongoose
+|   |-- controllers/      # Controladores
+|   |-- routes/           # Rutas
+|   |-- middlewares/      # Middlewares
+|   |-- validators/       # Validadores
+|   `-- views/            # Layouts, parciales y páginas
+|-- public/               # Archivos estáticos
+|-- vercel.json           # Configuración serverless para Vercel
+|-- .env / .env.example   # Variables de entorno
+|-- package.json
+`-- README.md
 ```
 
 ## Instalación
@@ -77,6 +74,15 @@ pnpm start
 ```
 
 El servidor estará disponible en: `http://localhost:3000`
+
+## Despliegue en Vercel (serverless)
+
+- Express vive dentro de `api/index.js` como Serverless Function; `vercel.json` reescribe todas las rutas hacia esa función y fija runtime Node.js 20 con `maxDuration: 10s`.
+- La conexión a MongoDB se abre bajo demanda y se reutiliza entre invocaciones. Usa una instancia gestionada (p. ej. MongoDB Atlas) y define `MONGODB_URI` en los Environment Variables de Vercel.
+- Variables mínimas en Vercel: `MONGODB_URI`, `SESSION_SECRET`, `SESSION_NAME` (opcional), `SESSION_MAX_AGE` (opcional) y `LOG_LEVEL` (opcional).
+- Desarrollo local: `pnpm run dev` sigue funcionando; si querés emular rutas serverless, `vercel dev` funciona con la misma configuración.
+- Archivos estáticos se sirven con `express.static` desde `/public` dentro de la función. Si querés que Vercel los sirva directamente, podés moverlos a `/public` y quitar la reescritura global.
+- Subida de imágenes: `src/utils/imageHandler.js` escribe en disco (`/public/...`), lo cual no es persistente en Vercel. Para producción migrá a un storage externo (S3, Cloudinary, etc.).
 
 ## Credenciales de acceso
 
@@ -162,6 +168,7 @@ Los usuarios se configuran en el archivo `.env` para mayor seguridad:
 - [ ] Implementar búsqueda avanzada
 - [ ] Agregar exportación de datos (Excel, PDF)
 - [ ] Implementar calendario interactivo para turnos
+- [ ] Migrar almacenamiento de imágenes a un servicio externo (S3/Cloudinary) compatible con serverless
 - [ ] Agregar notificaciones por email/SMS
 - [ ] Implementar historial médico detallado
 - [ ] Agregar dashboard con estadísticas
@@ -174,3 +181,10 @@ Los usuarios se configuran en el archivo `.env` para mayor seguridad:
 ## Licencia
 
 ISC
+
+## Deploy en Render (Node)
+
+- Entry point: `pnpm start` (usa `src/server.js` y escucha `process.env.PORT`).
+- Vars minimas: `MONGODB_URI`, `JWT_SECRET`, `FRONTEND_URL` (o `CORS_ORIGINS` si necesitas multiples dominios).
+- Opcionales: `JWT_ISSUER`, `JWT_EXPIRES_IN`, `LOG_LEVEL`.
+- Si usas `render.yaml` en la raiz, la config ya esta lista para Node + pnpm.

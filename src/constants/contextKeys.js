@@ -1,2 +1,5 @@
-export const ADMIN_DOCTOR_SESSION_KEY = 'adminSelectedDoctorId';
-export const ADMIN_DOCTOR_NAME_SESSION_KEY = 'adminSelectedDoctorName';
+export const ADMIN_PROFESSIONAL_SESSION_KEY = 'adminSelectedProfessionalId';
+export const ADMIN_PROFESSIONAL_NAME_SESSION_KEY = 'adminSelectedProfessionalName';
+// Legacy aliases
+export const ADMIN_DOCTOR_SESSION_KEY = ADMIN_PROFESSIONAL_SESSION_KEY;
+export const ADMIN_DOCTOR_NAME_SESSION_KEY = ADMIN_PROFESSIONAL_NAME_SESSION_KEY;

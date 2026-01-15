@@ -1,36 +1,37 @@
 {
   "name": "consultorio-express",
-  "version": "1.0.0",
-  "description": "Sistema de gestión de consultorio médico con Express y Handlebars",
+  "version": "2.0.0",
+  "description": "Sistema de gestión de consultorio médico - API REST con JWT",
   "type": "module",
   "main": "src/app.js",
   "scripts": {
     "dev": "nodemon",
-    "start": "NODE_ENV=production node src/app.js",
-    "init": "pnpm install"
+    "start": "NODE_ENV=production node src/server.js",
+    "dev:vercel": "vercel dev --listen 3000",
+    "init": "pnpm install",
+    "seed:min": "node scripts/seed-min.js"
   },
   "keywords": [
     "express",
-    "handlebars",
+    "api",
+    "rest",
+    "jwt",
     "mongoose",
     "consultorio"
   ],
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "connect-mongo": "^5.1.0",
-    "dotenv": "^16.4.7",
-    "express": "^4.21.2",
-    "express-handlebars": "^8.0.1",
-    "express-session": "^1.18.1",
-    "express-validator": "^7.2.1",
-    "mongoose": "^8.9.5",
-    "mongoose-paginate-v2": "^1.9.0",
-    "morgan": "^1.10.0"
+    "cors": "^2.8.5",
+    "dotenv": "^17.2.3",
+    "express": "^5.2.1",
+    "express-validator": "^7.3.1",
+    "jsonwebtoken": "^9.0.3",
+    "mongoose": "^9.1.1",
+    "mongoose-paginate-v2": "^1.9.1",
+    "morgan": "^1.10.1"
   },
   "devDependencies": {
-    "connect-livereload": "^0.6.1",
-    "livereload": "^0.10.3",
-    "nodemon": "^3.1.10"
+    "nodemon": "^3.1.11"
   }
 }

@@ -1,50 +1,90 @@
 import { resolveUsersFromEnv } from '../config/users.js';
-import { authenticateDoctorCredentials } from './doctorService.js';
+import { authenticateProfessionalCredentials } from './professionalService.js';
+import { findUserByUsername } from '../repositories/userAccountRepository.js';
+import { verifyPassword } from '../utils/passwordUtils.js';
+import { ROLES } from '../constants/roles.js';
 
-const buildDoctorSessionPayload = (doctor) => ({
-  id: doctor.userId,
-  username: doctor.userId,
-  role: 'user',
-  doctorId: doctor._id.toString(),
-  doctorName: `${doctor.nombre || ''} ${doctor.apellido || ''}`.trim()
+const buildProfessionalSessionPayload = (professional) => ({
+  id: professional.userId,
+  username: professional.userId,
+  role: ROLES.PROFESSIONAL,
+  professionalId: professional._id.toString(),
+  professionalName: `${professional.nombre || ''} ${professional.apellido || ''}`.trim()
 });
 
 export const authenticateUser = async ({ username, password }) => {
-  const users = resolveUsersFromEnv().filter((user) => user.role === 'admin');
-  const validAdmin = users.find(
-    (user) => user.username === username && user.password === password
-  );
-
-  if (validAdmin) {
+  const users = resolveUsersFromEnv();
+  const validSuper = users.find((u) => u.role === ROLES.SUPERADMIN && u.username === username && u.password === password);
+  if (validSuper) {
     return {
-      user: validAdmin,
-      doctor: null,
+      user: validSuper,
+      professional: null,
       sessionPayload: {
-        id: validAdmin.id,
-        username: validAdmin.username,
-        role: validAdmin.role,
-        doctorId: null,
-        doctorName: null
+        id: validSuper.id,
+        username: validSuper.username,
+        role: validSuper.role,
+        professionalId: null,
+        professionalName: null
       }
     };
   }
 
-  const doctor = await authenticateDoctorCredentials(username, password);
-  if (!doctor) {
+  const validAdmin = users.find((u) => u.role === ROLES.ADMIN && u.username === username && u.password === password);
+  if (validAdmin) {
+    return {
+      user: validAdmin,
+      professional: null,
+      sessionPayload: {
+        id: validAdmin.id,
+        username: validAdmin.username,
+        role: validAdmin.role,
+        professionalId: null,
+        professionalName: null
+      }
+    };
+  }
+
+  // DB-backed accounts (assistant/professional/admin/superadmin extra)
+  const dbUser = await findUserByUsername(username, { includePassword: true });
+  if (dbUser && dbUser.passwordHash) {
+    const ok = await verifyPassword(password, dbUser.passwordHash);
+    if (ok) {
+      return {
+        user: {
+          id: dbUser._id.toString(),
+          username: dbUser.username,
+          role: dbUser.role,
+          professionalId: dbUser.professional ? dbUser.professional.toString() : null,
+          professionalName: null
+        },
+        professional: null,
+        sessionPayload: {
+          id: dbUser._id.toString(),
+          username: dbUser.username,
+          role: dbUser.role,
+          professionalId: dbUser.professional ? dbUser.professional.toString() : null,
+          professionalName: null
+        }
+      };
+    }
+  }
+
+  const professional = await authenticateProfessionalCredentials(username, password);
+  if (!professional) {
     return null;
   }
 
-  if (doctor.passwordHash) {
-    doctor.passwordHash = undefined;
+  if (professional.passwordHash) {
+    professional.passwordHash = undefined;
   }
 
   return {
     user: {
-      id: doctor.userId,
-      username: doctor.userId,
-      role: 'user'
+      id: professional.userId,
+      username: professional.userId,
+      role: ROLES.PROFESSIONAL
     },
-    doctor,
-    sessionPayload: buildDoctorSessionPayload(doctor)
+    professional,
+    sessionPayload: buildProfessionalSessionPayload(professional)
   };
 };

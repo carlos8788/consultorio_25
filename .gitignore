@@ -20,6 +20,10 @@ Thumbs.db
 .idea/
 *.swp
 *.swo
-
+*.codex
 # 
 *.zip
+
+# custom
+docs/
+nodemon.json

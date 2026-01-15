@@ -6,7 +6,7 @@ import { logger } from '../logger/index.js';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-const PUBLIC_DIR = path.resolve(__dirname, '../../public');
+const PUBLIC_DIR = path.resolve(__dirname, '../../public/assets');
 
 export const buildImagePath = (relativePath) =>
   path.join(PUBLIC_DIR, relativePath);

@@ -89,7 +89,8 @@ export const buildPaginationData = (
     pagination: {
       page: paginatedResult.page,
       pages: paginatedResult.totalPages,
-      total: paginatedResult.totalDocs
+      total: paginatedResult.totalDocs,
+      limit: paginatedResult.limit
     },
     paginationDisplay: buildPaginationDisplay(
       paginatedResult.page,

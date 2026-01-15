@@ -1,158 +1,100 @@
 import express from 'express';
-import { engine } from 'express-handlebars';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import dotenv from 'dotenv';
 import morgan from 'morgan';
-import session from 'express-session';
-import MongoStore from 'connect-mongo';
-import connectLivereload from 'connect-livereload';
-import livereload from 'livereload';
-import { attachRequestContext } from './middlewares/requestContext.js';
 import { logger } from './logger/index.js';
+import cors from 'cors';
 
-// Importar configuración de BD
-import connectDB from './config/database.js';
-
-// Importar rutas
-import indexRoutes from './routes/index.js';
-import authRoutes from './routes/authRoutes.js';
-import obraSocialRoutes from './routes/obraSocialRoutes.js';
-import pacienteRoutes from './routes/pacienteRoutes.js';
-import turnoRoutes from './routes/turnoRoutes.js';
+// Importar rutas API
 import apiRoutes from './routes/apiRoutes.js';
-import doctorRoutes from './routes/doctorRoutes.js';
-import configRoutes from './routes/configRoutes.js';
 
 // Configuración de __dirname para ES6
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
+const publicPath = path.join(__dirname, '../public');
+const assetsPath = path.join(publicPath, 'assets');
 
 // Cargar variables de entorno
 dotenv.config();
 
 // Crear app de Express
 const app = express();
-const PORT = process.env.PORT || 3000;
+app.disable('x-powered-by');
+app.set('trust proxy', 1); // Necesario para cookies secure detrás del proxy de Vercel
+app.set('etag', false); // Evita 304 en API y entrega siempre el cuerpo
 
-// Configurar LiveReload en desarrollo
-const isDevelopment = process.env.NODE_ENV !== 'production';
-if (isDevelopment) {
-  const livereloadServer = livereload.createServer({
-    exts: ['hbs', 'js', 'css', 'html'],
-    delay: 500
-  });
+// Configuración CORS para permitir comunicación con Next.js (LAN)
+const defaultOrigins = [
+  'http://localhost:3000',
+  'http://localhost:3001',
+  'http://192.168.0.238:3001'
+];
+const extraOrigins = (process.env.CORS_ORIGINS || '').split(',').map((o) => o.trim()).filter(Boolean);
+const allowlist = Array.from(new Set([
+  ...defaultOrigins,
+  process.env.FRONTEND_URL || '',
+  ...extraOrigins
+])).filter(Boolean);
 
-  const publicPath = path.join(__dirname, '../public');
-  const viewsPath = path.join(__dirname, 'views');
-  const srcPath = path.join(__dirname);
-
-  livereloadServer.watch([publicPath, viewsPath, srcPath]);
-
-  livereloadServer.server.once('connection', () => {
-    setTimeout(() => {
-      livereloadServer.refresh('/');
-    }, 100);
-  });
-
-  app.use(connectLivereload());
-  logger.info('LiveReload activado - observando cambios en archivos');
-}
-
-// Conectar a la base de datos
-connectDB();
-
-// Configuración de Handlebars
-app.engine('hbs', engine({
-  extname: '.hbs',
-  defaultLayout: 'main',
-  layoutsDir: path.join(__dirname, 'views/layouts'),
-  partialsDir: path.join(__dirname, 'views/partials'),
-  runtimeOptions: {
-    allowProtoPropertiesByDefault: true,
-    allowProtoMethodsByDefault: true
+const corsOptions = {
+  origin(origin, callback) {
+    if (!origin) return callback(null, true); // curl / health checks
+    if (allowlist.includes(origin)) {
+      return callback(null, true);
+    }
+    return callback(new Error('Not allowed by CORS'));
   },
-  helpers: {
-    eq: (a, b) => a === b,
-    or: (a, b) => a || b,
-    and: (a, b) => a && b,
-    add: (a, b) => parseInt(a) + parseInt(b),
-    subtract: (a, b) => parseInt(a) - parseInt(b),
-    range: (start, end) => {
-      const result = [];
-      for (let i = start; i <= end; i++) {
-        result.push(i);
-      }
-      return result;
-    },
-    formatDate: (date) => {
-      if (!date) return '';
-      return new Date(date).toLocaleDateString('es-AR');
-    },
-    json: (context) => JSON.stringify(context)
-  }
-}));
-
-app.set('view engine', 'hbs');
-app.set('views', path.join(__dirname, 'views'));
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
+  optionsSuccessStatus: 204
+};
 
 // Middlewares
 app.use(morgan(process.env.LOG_LEVEL || 'dev'));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
-app.use(express.static(path.join(__dirname, '../public')));
+app.use((req, res, next) => {
+  if (req.path.startsWith('/api/')) {
+    res.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+    res.set('Pragma', 'no-cache');
+    res.set('Expires', '0');
+  }
+  next();
+});
+app.use(cors(corsOptions));
+app.options(/.*/, cors(corsOptions));
 
-// Configuración de sesiones
-app.use(session({
-  secret: process.env.SESSION_SECRET || 'tu_secreto_super_seguro',
-  resave: false,
-  saveUninitialized: false,
-  store: MongoStore.create({
-    mongoUrl: process.env.MONGODB_URI || 'mongodb://localhost:27017/consultorio',
-    touchAfter: 24 * 3600
-  }),
-  cookie: {
-    maxAge: parseInt(process.env.SESSION_MAX_AGE) || 86400000,
-    httpOnly: true,
-    secure: process.env.NODE_ENV === 'production'
-  },
-  name: process.env.SESSION_NAME || 'consultorio_session'
+// Assets estáticos
+const isDevelopment = process.env.NODE_ENV !== 'production';
+app.use('/assets', express.static(assetsPath, {
+  maxAge: isDevelopment ? 0 : '30d',
+  immutable: !isDevelopment
 }));
 
-// Middleware para pasar datos de sesión y ruta actual a las vistas
-app.use(attachRequestContext);
+app.use(express.static(publicPath, {
+  maxAge: isDevelopment ? 0 : '1d'
+}));
 
-// Rutas
-app.use('/', indexRoutes);
-app.use('/', authRoutes);
-app.use('/obras-sociales', obraSocialRoutes);
-app.use('/pacientes', pacienteRoutes);
-app.use('/turnos', turnoRoutes);
-app.use('/', doctorRoutes);
-app.use('/', configRoutes);
+// Rutas API
 app.use('/api', apiRoutes);
 
 // Manejo de errores 404
 app.use((req, res) => {
-  res.status(404).render('error', {
-    title: 'Página no encontrada',
-    error: 'La página que buscas no existe'
+  res.status(404).json({
+    error: 'Endpoint no encontrado',
+    path: req.path
   });
 });
 
 // Manejo de errores generales
 app.use((err, req, res, next) => {
   logger.error('Error:', err);
-  res.status(err.status || 500).render('error', {
-    title: 'Error',
-    error: err.message || 'Ha ocurrido un error en el servidor'
+  res.status(err.status || 500).json({
+    error: err.message || 'Ha ocurrido un error en el servidor',
+    ...(isDevelopment && { stack: err.stack })
   });
-});
-
-// Iniciar servidor
-app.listen(PORT, '0.0.0.0', () => {
-  logger.info('Servidor corriendo en http://localhost:' + PORT);
-  logger.info('Entorno: ' + (process.env.NODE_ENV || 'development'));
 });
 
 export default app;

@@ -1,5 +1,16 @@
 const STATIC_USERS = [
   {
+    key: 'superadmin',
+    role: 'superadmin',
+    id: 'superadmin',
+    envUser: 'SUPERADMIN_USER',
+    envPassword: 'SUPERADMIN_PASSWORD',
+    profile: {
+      nombre: 'Super',
+      apellido: 'Admin'
+    }
+  },
+  {
     key: 'admin',
     role: 'admin',
     id: 'admin',
