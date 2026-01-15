@@ -38,12 +38,18 @@ const allowlist = Array.from(new Set([
 ])).filter(Boolean);
 
 const normalizeOrigin = (origin) => (origin ? origin.replace(/\/$/, '') : origin);
+const logCorsDecision = (origin, normalizedOrigin, allowed) => {
+  if (!origin) return;
+  logger.info(`[CORS] origin=${origin} normalized=${normalizedOrigin || 'none'} allowed=${allowed}`);
+};
 const allowlistNormalized = new Set(allowlist.map(normalizeOrigin).filter(Boolean));
 const corsOptions = {
   origin(origin, callback) {
     if (!origin) return callback(null, true); // curl / health checks
     const normalizedOrigin = normalizeOrigin(origin);
-    if (allowlistNormalized.has(normalizedOrigin)) {
+    const isAllowed = allowlistNormalized.has(normalizedOrigin);
+    logCorsDecision(origin, normalizedOrigin, isAllowed);
+    if (isAllowed) {
       return callback(null, true);
     }
     return callback(new Error('Not allowed by CORS'));
