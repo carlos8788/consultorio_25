@@ -6,6 +6,8 @@ import {
   createProfessionalApi,
   updateProfessionalApi,
   deleteProfessionalApi,
+  restoreProfessionalApi,
+  setProfessionalSubscriptionApi,
   resetProfessionalPasswordApi
 } from '../controllers/professionalApiController.js';
 
@@ -18,6 +20,8 @@ router.get('/', listProfessionalsApi);
 router.post('/', createProfessionalApi);
 router.put('/:id', updateProfessionalApi);
 router.delete('/:id', deleteProfessionalApi);
+router.post('/:id/restore', restoreProfessionalApi);
+router.post('/:id/subscription', setProfessionalSubscriptionApi);
 router.post('/:id/reset-password', resetProfessionalPasswordApi);
 
 export default router;

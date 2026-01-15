@@ -26,6 +26,23 @@ export const listUserAccounts = () =>
     .sort({ role: 1, username: 1 })
     .lean();
 
+export const getUserAccountById = (id, { includePassword = false } = {}) => {
+  const query = UserAccount.findOne(withNotDeleted({ _id: id }));
+  if (includePassword) {
+    query.select('+passwordHash');
+  }
+  return query.lean();
+};
+
+export const updateUserAccountPassword = (id, passwordHash) =>
+  UserAccount.findOneAndUpdate(
+    withNotDeleted({ _id: id }),
+    { passwordHash, passwordUpdatedAt: new Date() },
+    { new: true }
+  )
+    .select('-passwordHash')
+    .lean();
+
 export const softDeleteUserAccount = (id, deletedBy = null) =>
   UserAccount.findOneAndUpdate(
     withNotDeleted({ _id: id }),

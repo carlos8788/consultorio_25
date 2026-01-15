@@ -27,6 +27,10 @@ const userAccountSchema = new Schema({
     nombre: { type: String, trim: true },
     apellido: { type: String, trim: true }
   },
+  passwordUpdatedAt: {
+    type: Date,
+    default: null
+  },
   active: {
     type: Boolean,
     default: true

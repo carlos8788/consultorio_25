@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import { loginApi, meApi } from '../controllers/authApiController.js';
+import publicRoutes from './apiPublicRoutes.js';
 import professionalRoutes from './apiProfessionalRoutes.js';
 import pacienteRoutes from './apiPacienteRoutes.js';
 import turnoRoutes from './apiTurnoRoutes.js';
@@ -7,15 +8,18 @@ import interesadoRoutes from './apiInteresadoRoutes.js';
 import { setProfessionalContext } from '../controllers/adminContextController.js';
 import { requireJwtAuth } from '../middlewares/jwtAuth.js';
 import { requireRole, ROLES } from '../middlewares/roleGuard.js';
-import { createUserApi, listUsersApi } from '../controllers/userAdminController.js';
+import { createUserApi, listUsersApi, resetUserPasswordApi } from '../controllers/userAdminController.js';
 import obraSocialApiRoutes from './apiObraSocialRoutes.js';
 import notaRoutes from './apiNotaRoutes.js';
 
 const router = Router();
 
-// Autenticación
+// Autenticacion
 router.post('/auth/login', loginApi);
 router.get('/auth/me', requireJwtAuth, meApi);
+
+// Publico (landing, formularios)
+router.use('/public', publicRoutes);
 
 // Contexto de profesional (admin/superadmin)
 router.post(
@@ -43,8 +47,9 @@ router.use('/turnos', turnoRoutes);
 // Interesados (API)
 router.use('/interesados', interesadoRoutes);
 
-// Administración (solo superadmin)
+// Administracion (solo superadmin)
 router.post('/admin/users', requireJwtAuth, requireRole([ROLES.SUPERADMIN]), createUserApi);
-router.get('/admin/users', requireJwtAuth, requireRole([ROLES.SUPERADMIN]), listUsersApi);
+router.get('/admin/users', requireJwtAuth, requireRole([ROLES.ADMIN, ROLES.SUPERADMIN]), listUsersApi);
+router.post('/admin/users/:id/reset-password', requireJwtAuth, requireRole([ROLES.ADMIN, ROLES.SUPERADMIN]), resetUserPasswordApi);
 
 export default router;

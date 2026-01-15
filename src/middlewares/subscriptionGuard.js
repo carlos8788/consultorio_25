@@ -1,4 +1,4 @@
-import { getActiveSubscription } from '../services/subscriptionService.js';
+import { getActiveSubscription, hasSubscriptionForProfessional } from '../services/subscriptionService.js';
 import { isAdminRole, ROLES } from '../constants/roles.js';
 
 const extractRole = (req) =>
@@ -21,18 +21,23 @@ export const requireActiveSubscription = async (req, res, next) => {
 
     const professionalId = extractProfessionalId(req);
     if (!professionalId) {
-      return res.status(400).json({ error: 'No se pudo determinar el profesional para validar suscripción' });
+      return res.status(400).json({ error: 'No se pudo determinar el profesional para validar suscripcion' });
     }
 
     const activeSub = await getActiveSubscription(professionalId);
     if (!activeSub) {
-      const message = 'Suscripción inactiva o vencida';
+      const hasSubscription = await hasSubscriptionForProfessional(professionalId);
+      if (!hasSubscription) {
+        return next();
+      }
+
+      const message = 'Suscripcion inactiva o vencida';
       return res.status(402).json({ error: message });
     }
 
     return next();
   } catch (error) {
-    return res.status(500).json({ error: 'Error validando suscripción' });
+    return res.status(500).json({ error: 'Error validando suscripcion' });
   }
 };
 

@@ -1,5 +1,12 @@
-import { createUserAccount, listUserAccounts, findUserByUsername } from '../repositories/userAccountRepository.js';
+import {
+  createUserAccount,
+  listUserAccounts,
+  findUserByUsername,
+  getUserAccountById,
+  updateUserAccountPassword
+} from '../repositories/userAccountRepository.js';
 import { hashPassword } from '../utils/passwordUtils.js';
+import { generateRandomPassword } from '../utils/passwordUtils.js';
 import { ROLES } from '../constants/roles.js';
 import { getProfessionalByIdOrFail } from '../services/professionalService.js';
 
@@ -31,7 +38,8 @@ export const createUserApi = async (req, res) => {
       passwordHash,
       role,
       professional: professionalId || null,
-      profile: { nombre, apellido }
+      profile: { nombre, apellido },
+      passwordUpdatedAt: new Date()
     });
     const safeUser = { ...user.toObject(), passwordHash: undefined };
     return res.status(201).json({ user: safeUser });
@@ -46,5 +54,27 @@ export const listUsersApi = async (_req, res) => {
     return res.json({ users });
   } catch (error) {
     return res.status(500).json({ error: 'No se pudieron listar usuarios' });
+  }
+};
+
+export const resetUserPasswordApi = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const user = await getUserAccountById(id, { includePassword: true });
+    if (!user) {
+      return res.status(404).json({ error: 'Usuario no encontrado' });
+    }
+
+    const plainPassword = req.body?.password || generateRandomPassword(12);
+    const passwordHash = await hashPassword(plainPassword);
+    const updated = await updateUserAccountPassword(id, passwordHash);
+
+    return res.json({
+      user: updated,
+      newPassword: plainPassword,
+      warning: 'La contrasena temporal se devuelve en esta respuesta. Guardala de forma segura.'
+    });
+  } catch (error) {
+    return res.status(500).json({ error: 'No se pudo restablecer la contrasena' });
   }
 };

@@ -4,10 +4,12 @@ import {
   createProfessional,
   getProfessionalById,
   getProfessionalByIdWithPassword,
+  getProfessionalByIdIncludingDeleted,
   listProfessionals as listProfessionalsRepo,
   updateProfessionalPassword,
   updateProfessional as updateProfessionalRepo,
-  deleteProfessional as deleteProfessionalRepo
+  deleteProfessional as deleteProfessionalRepo,
+  restoreProfessional as restoreProfessionalRepo
 } from '../repositories/professionalRepository.js';
 import {
   assignProfessionalToLegacyPatients,
@@ -69,10 +71,15 @@ export const professionalLegacyFilters = {
   turnos: legacyTurnoFilter
 };
 
-export const listProfessionals = () => listProfessionalsRepo();
+export const listProfessionals = (options = {}) => listProfessionalsRepo(options);
 export const createProfessionalService = (data) => createProfessional(data);
 export const updateProfessionalService = (id, data) => updateProfessionalRepo(id, data);
 export const deleteProfessionalService = (id, options = {}) => deleteProfessionalRepo(id, options);
+export const restoreProfessionalService = (id) => restoreProfessionalRepo(id);
+export const getProfessionalByIdIncludingDeletedOrFail = async (professionalId) => {
+  if (!professionalId) return null;
+  return getProfessionalByIdIncludingDeleted(professionalId);
+};
 
 export const authenticateProfessionalCredentials = async (username, password) => {
   if (!username || !password) {

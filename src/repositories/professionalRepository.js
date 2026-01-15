@@ -29,8 +29,13 @@ export const updateProfessionalPassword = (id, passwordHash) =>
     { new: true }
   );
 
-export const listProfessionals = () =>
-  Professional.find(withNotDeleted()).sort({ apellido: 1, nombre: 1 }).lean();
+export const listProfessionals = ({ includeDeleted = false } = {}) => {
+  const filter = includeDeleted ? {} : withNotDeleted();
+  return Professional.find(filter).sort({ apellido: 1, nombre: 1 }).lean();
+};
+
+export const getProfessionalByIdIncludingDeleted = (id) =>
+  Professional.findById(id);
 
 export const updateProfessional = (id, data) =>
   Professional.findOneAndUpdate(
@@ -49,3 +54,10 @@ export const deleteProfessional = (id, { force = false, deletedBy = null } = {})
     { new: true }
   );
 };
+
+export const restoreProfessional = (id) =>
+  Professional.findByIdAndUpdate(
+    id,
+    { deletedAt: null, deletedBy: null },
+    { new: true, runValidators: true }
+  );
