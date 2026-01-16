@@ -583,7 +583,7 @@ export const updateAvisoApiV1 = async (req, res) => {
       ...scope.professionalFilter
     };
 
-    const updated = await updateAvisoService(filter, {
+    const updatePayload = {
       titulo,
       motivo,
       tipo,
@@ -596,7 +596,9 @@ export const updateAvisoApiV1 = async (req, res) => {
       tags: Array.isArray(tags) ? tags : [],
       estado,
       telefono
-    });
+    };
+
+    const updated = await updateAvisoService(filter, updatePayload);
 
     if (!updated) {
       return res.status(404).json({ error: 'Aviso no encontrado' });

@@ -5,7 +5,7 @@ export const listObrasSocialesApi = async (req, res) => {
   try {
     const obras = await ObraSocial.find({})
       .sort({ nombre: 1 })
-      .select('nombre padron _id')
+      .select('nombre padron telefono direccion _id')
       .lean();
 
     res.json({
@@ -13,7 +13,9 @@ export const listObrasSocialesApi = async (req, res) => {
         _id: obra._id?.toString(),
         id: obra._id?.toString(), // alias para compatibilidad
         nombre: obra.nombre,
-        padron: obra.padron || null
+        padron: obra.padron || null,
+        telefono: obra.telefono || '',
+        direccion: obra.direccion || ''
       }))
     });
   } catch (error) {
