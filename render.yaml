@@ -1,0 +1,32 @@
+services:
+  - type: web
+    name: consultorio-backend
+    runtime: node
+    rootDir: backend
+    buildCommand: corepack enable && pnpm install --frozen-lockfile
+    startCommand: pnpm start
+    autoDeploy: true
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: MONGODB_URI
+        sync: false
+      - key: JWT_SECRET
+        sync: false
+      - key: JWT_ISSUER
+        value: consultorio-app
+      - key: JWT_EXPIRES_IN
+        value: 12h
+      - key: FRONTEND_URL
+        sync: false
+      - key: CORS_ORIGINS
+        sync: false
+      - key: LOG_LEVEL
+        value: info
+
+  - type: cron
+    name: keep-alive
+    runtime: node
+    schedule: "*/10 * * * *"  # Cada 10 minutos
+    buildCommand: corepack enable && pnpm install --frozen-lockfile
+    startCommand: curl -X GET https://consultorio-25.onrender.com/api/health

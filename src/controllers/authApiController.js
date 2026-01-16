@@ -1,6 +1,9 @@
+import crypto from 'crypto';
 import { authenticateUser } from '../services/authService.js';
 import { signJwt } from '../utils/jwt.js';
 import { jwtConfig } from '../config/jwt.js';
+import { authCookieConfig } from '../config/auth.js';
+import { parseDurationToMs } from '../utils/time.js';
 import { logger } from '../logger/index.js';
 
 const formatProfessionalName = (professional) => {
@@ -8,6 +11,24 @@ const formatProfessionalName = (professional) => {
   const parts = [professional.apellido, professional.nombre].filter(Boolean);
   return parts.length ? parts.join(', ') : professional.userId || null;
 };
+
+const buildCookieOptions = (maxAgeMs) => ({
+  httpOnly: true,
+  secure: authCookieConfig.secure,
+  sameSite: authCookieConfig.sameSite,
+  domain: authCookieConfig.domain,
+  path: authCookieConfig.path,
+  ...(maxAgeMs ? { maxAge: maxAgeMs } : {})
+});
+
+const buildCsrfCookieOptions = (maxAgeMs) => ({
+  httpOnly: false,
+  secure: authCookieConfig.secure,
+  sameSite: authCookieConfig.sameSite,
+  domain: authCookieConfig.domain,
+  path: authCookieConfig.path,
+  ...(maxAgeMs ? { maxAge: maxAgeMs } : {})
+});
 
 export const loginApi = async (req, res) => {
   try {
@@ -34,6 +55,11 @@ export const loginApi = async (req, res) => {
     };
 
     const token = signJwt(payload);
+    const maxAgeMs = parseDurationToMs(jwtConfig.expiresIn);
+    const csrfToken = crypto.randomBytes(32).toString('hex');
+
+    res.cookie(authCookieConfig.name, token, buildCookieOptions(maxAgeMs));
+    res.cookie(authCookieConfig.csrfName, csrfToken, buildCsrfCookieOptions(maxAgeMs));
 
     return res.json({
       token,
@@ -67,4 +93,17 @@ export const meApi = (req, res) => {
   };
 
   return res.json({ user });
+};
+
+export const logoutApi = (_req, res) => {
+  const base = {
+    secure: authCookieConfig.secure,
+    sameSite: authCookieConfig.sameSite,
+    domain: authCookieConfig.domain,
+    path: authCookieConfig.path
+  };
+
+  res.clearCookie(authCookieConfig.name, { ...base, httpOnly: true });
+  res.clearCookie(authCookieConfig.csrfName, { ...base, httpOnly: false });
+  return res.json({ success: true });
 };

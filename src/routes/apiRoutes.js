@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { loginApi, meApi } from '../controllers/authApiController.js';
+import { loginApi, logoutApi, meApi } from '../controllers/authApiController.js';
 import publicRoutes from './apiPublicRoutes.js';
 import professionalRoutes from './apiProfessionalRoutes.js';
 import pacienteRoutes from './apiPacienteRoutes.js';
@@ -16,6 +16,7 @@ const router = Router();
 
 // Autenticacion
 router.post('/auth/login', loginApi);
+router.post('/auth/logout', logoutApi);
 router.get('/auth/me', requireJwtAuth, meApi);
 
 // Publico (landing, formularios)

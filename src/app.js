@@ -5,6 +5,7 @@ import dotenv from 'dotenv';
 import morgan from 'morgan';
 import { logger } from './logger/index.js';
 import cors from 'cors';
+import { csrfGuard } from './middlewares/csrfGuard.js';
 
 // Importar rutas API
 import apiRoutes from './routes/apiRoutes.js';
@@ -56,7 +57,7 @@ const corsOptions = {
   },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'X-CSRF-Token'],
   optionsSuccessStatus: 204
 };
 
@@ -87,6 +88,7 @@ app.use(express.static(publicPath, {
 }));
 
 // Rutas API
+app.use('/api', csrfGuard);
 app.use('/api', apiRoutes);
 
 // Manejo de errores 404

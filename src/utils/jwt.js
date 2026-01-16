@@ -1,5 +1,7 @@
 import jwt from 'jsonwebtoken';
 import { jwtConfig } from '../config/jwt.js';
+import { authCookieConfig } from '../config/auth.js';
+import { parseCookies } from './cookies.js';
 
 export const signJwt = (payload, options = {}) => {
   const config = { ...jwtConfig, ...options };
@@ -26,4 +28,11 @@ export const extractBearerToken = (req) => {
   const [scheme, token] = authHeader.split(' ');
   if (scheme !== 'Bearer' || !token) return null;
   return token.trim();
+};
+
+export const extractAuthToken = (req) => {
+  const bearer = extractBearerToken(req);
+  if (bearer) return bearer;
+  const cookies = parseCookies(req);
+  return cookies[authCookieConfig.name] || null;
 };

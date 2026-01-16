@@ -1,4 +1,4 @@
-import { extractBearerToken, verifyJwt } from '../utils/jwt.js';
+import { extractAuthToken, verifyJwt } from '../utils/jwt.js';
 
 const applyAuthContext = (req, payload) => {
   const user = {
@@ -23,7 +23,7 @@ const applyAuthContext = (req, payload) => {
 };
 
 export const optionalJwtAuth = (req, _res, next) => {
-  const token = extractBearerToken(req);
+  const token = extractAuthToken(req);
   if (!token) {
     return next();
   }
@@ -37,7 +37,7 @@ export const optionalJwtAuth = (req, _res, next) => {
 };
 
 export const requireJwtAuth = (req, res, next) => {
-  const token = extractBearerToken(req);
+  const token = extractAuthToken(req);
   if (!token) {
     return res.status(401).json({ error: 'No autorizado: token faltante' });
   }

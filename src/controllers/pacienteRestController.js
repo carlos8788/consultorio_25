@@ -377,12 +377,7 @@ const attachPacienteByPhone = async (avisos = [], professionalFilter = {}) => {
 
   // Primero, buscar respetando contexto profesional
   const primaryMap = await buildMap(phoneList, professionalFilter);
-  const unresolved = phoneList.filter((p) => !primaryMap.has(p));
-
-  // Si no hubo match, intentar sin filtro de profesional
-  const fallbackMap = unresolved.length ? await buildMap(unresolved, {}) : new Map();
-
-  const resolvePaciente = (phone) => primaryMap.get(phone) || fallbackMap.get(phone) || null;
+  const resolvePaciente = (phone) => primaryMap.get(phone) || null;
 
   avisos.forEach((aviso) => {
     if (aviso?.paciente) return;
