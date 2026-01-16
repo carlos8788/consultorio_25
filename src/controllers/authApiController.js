@@ -63,6 +63,7 @@ export const loginApi = async (req, res) => {
 
     return res.json({
       token,
+      csrfToken,
       expiresIn: jwtConfig.expiresIn,
       user: {
         id: payload.sub,
