@@ -3,8 +3,13 @@ import { extractBearerToken } from '../utils/jwt.js';
 import { parseCookies } from '../utils/cookies.js';
 
 const SAFE_METHODS = new Set(['GET', 'HEAD', 'OPTIONS']);
+const CSRF_SKIP_PATHS = new Set(['/api/auth/login']);
 
 export const csrfGuard = (req, res, next) => {
+  if (CSRF_SKIP_PATHS.has(req.path)) {
+    return next();
+  }
+
   if (SAFE_METHODS.has(req.method)) {
     return next();
   }
