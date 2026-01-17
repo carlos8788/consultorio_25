@@ -1,8 +1,6 @@
 {
   "watch": [
-    "src/**/*.js",
-    "public/**/*.js",
-    "public/**/*.css"
+    "src/**/*.js"
   ],
   "ext": "js,css",
   "ignore": [
