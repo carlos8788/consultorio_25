@@ -18,9 +18,10 @@ export const findTurno = (filter) =>
   Turno.findOne(withNotDeleted(filter))
     .populate({
       path: 'paciente',
-      populate: {
-        path: 'obraSocial'
-      }
+      populate: [
+        { path: 'obraSocial' },
+        { path: 'coberturas.obraSocial' }
+      ]
     })
     .populate('professional')
     .lean();

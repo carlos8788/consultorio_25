@@ -47,6 +47,21 @@ const professionalSchema = new Schema({
     type: String,
     trim: true
   },
+  obrasSociales: {
+    type: [{
+      obraSocial: {
+        type: Schema.Types.ObjectId,
+        ref: 'ObraSocial',
+        required: true
+      },
+      estado: {
+        type: String,
+        enum: ['activa', 'suspendida'],
+        default: 'activa'
+      }
+    }],
+    default: []
+  },
   deletedAt: {
     type: Date,
     default: null

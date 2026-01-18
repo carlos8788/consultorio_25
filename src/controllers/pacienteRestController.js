@@ -3,6 +3,7 @@ import {
   listPacientes,
   createPaciente as createPacienteService,
   registerProfessionalForPaciente,
+  upsertCoberturaForPaciente as upsertCoberturaForPacienteService,
   buildProfessionalOwnershipFilter,
   getPaciente,
   getPacienteIncludingDeleted,
@@ -34,6 +35,7 @@ import {
   getObservacionForProfessional,
   mergeObservacionesForProfessional
 } from '../utils/pacienteObservaciones.js';
+import { normalizePacienteCobertura } from '../utils/pacienteCoberturas.js';
 
 const formatProfessionalName = (professional) => {
   if (!professional) return null;
@@ -63,6 +65,34 @@ const buildProfessionalList = (input, primaryProfessionalId) => {
 };
 
 const normalizeDni = (value) => String(value || '').trim();
+
+const hasOwn = (obj, key) => Object.prototype.hasOwnProperty.call(obj || {}, key);
+
+const normalizeObraSocialInput = (value) => {
+  if (value === undefined || value === null) return null;
+  if (typeof value === 'string' && !value.trim()) return null;
+  return value;
+};
+
+const toIdString = (value) => {
+  if (!value) return null;
+  if (typeof value === 'string') return value;
+  if (typeof value === 'object') {
+    if (value._id?.toString) return value._id.toString();
+    if (value.id?.toString) return value.id.toString();
+  }
+  if (value.toString) return value.toString();
+  return null;
+};
+
+const buildCoberturaEntry = (professionalId, obraSocialId) => ({
+  professional: professionalId,
+  tipo: obraSocialId ? 'obraSocial' : 'particular',
+  obraSocial: obraSocialId || null
+});
+
+const isPrimaryProfessional = (paciente, professionalId) =>
+  toIdString(paciente?.professional) === toIdString(professionalId);
 
 const hasProfessionalLink = (paciente, professionalId) => {
   if (!paciente || !professionalId) return false;
@@ -154,6 +184,7 @@ export const getPacienteStatsApiV1 = async (req, res) => {
     const { particularIds } = await buildObrasSocialesContext();
     const stats = await getPacienteStats({
       professionalFilter: scope.professionalFilter,
+      professionalId: scope.professionalId,
       particularIds
     });
     return res.json({ stats });
@@ -180,14 +211,16 @@ export const createPacienteApiV1 = async (req, res) => {
     } = req.body;
 
     const normalizedDni = normalizeDni(dni);
+    const obraSocialId = normalizeObraSocialInput(obraSocial);
     const professionalsList = buildProfessionalList(professionals, scope.professionalId);
     const observacionesList = buildObservacionesArray(observaciones, scope.professionalId);
+    const coberturaEntry = buildCoberturaEntry(scope.professionalId, obraSocialId);
     const basePayload = cleanUndefined({
       nombre,
       apellido,
       dni: normalizedDni || undefined,
       telefono,
-      obraSocial: obraSocial || undefined,
+      obraSocial: obraSocialId,
       observaciones: observacionesList.length ? observacionesList : undefined,
       edad,
       fechaNacimiento
@@ -208,10 +241,11 @@ export const createPacienteApiV1 = async (req, res) => {
 
           await updatePacienteIncludingDeleted({ _id: existing._id }, restorePayload);
           await registerProfessionalForPaciente(existing._id, scope.professionalId);
+          await upsertCoberturaForPacienteService(existing._id, scope.professionalId, obraSocialId);
 
           const restored = await getPaciente({ _id: existing._id });
           return res.status(200).json({
-            paciente: toPacienteSuggestionDTO(restored || existing),
+            paciente: toPacienteSuggestionDTO(restored || existing, { professionalId: scope.professionalId }),
             restored: true,
             professionalId: scope.professionalId
           });
@@ -227,9 +261,11 @@ export const createPacienteApiV1 = async (req, res) => {
           }
         }
 
+        await upsertCoberturaForPacienteService(existing._id, scope.professionalId, obraSocialId);
+
         const linkedPaciente = await getPaciente({ _id: existing._id });
         return res.status(200).json({
-          paciente: toPacienteSuggestionDTO(linkedPaciente || existing),
+          paciente: toPacienteSuggestionDTO(linkedPaciente || existing, { professionalId: scope.professionalId }),
           alreadyExists: true,
           linked: !linked,
           professionalId: scope.professionalId
@@ -240,13 +276,14 @@ export const createPacienteApiV1 = async (req, res) => {
     const nuevoPaciente = await createPacienteService({
       ...basePayload,
       professional: scope.professionalId,
-      professionals: professionalsList
+      professionals: professionalsList,
+      coberturas: [coberturaEntry]
     });
 
     await registerProfessionalForPaciente(nuevoPaciente._id, scope.professionalId);
 
     return res.status(201).json({
-      paciente: toPacienteSuggestionDTO(nuevoPaciente),
+      paciente: toPacienteSuggestionDTO(nuevoPaciente, { professionalId: scope.professionalId }),
       professionalId: scope.professionalId
     });
   } catch (error) {
@@ -259,23 +296,26 @@ export const createPacienteApiV1 = async (req, res) => {
   }
 };
 
-const toPacienteApiDTO = (paciente, professionalId) => ({
-  id: paciente?._id?.toString() || paciente?.id || null,
-  nombre: paciente?.nombre || '',
-  apellido: paciente?.apellido || '',
-  dni: paciente?.dni || '',
-  telefono: paciente?.telefono || '',
-  fechaNacimiento: paciente?.fechaNacimiento || '',
-  obraSocial: paciente?.obraSocial
-    ? {
-        id: paciente.obraSocial?._id?.toString() || null,
-        nombre: paciente.obraSocial?.nombre || ''
-      }
-    : null,
-  observaciones: getObservacionForProfessional(paciente, professionalId),
-  professional: paciente?.professional || null,
-  professionals: paciente?.professionals || []
-});
+const toPacienteApiDTO = (paciente, professionalId) => {
+  const normalized = normalizePacienteCobertura(paciente, professionalId);
+  return {
+    id: normalized?._id?.toString() || normalized?.id || null,
+    nombre: normalized?.nombre || '',
+    apellido: normalized?.apellido || '',
+    dni: normalized?.dni || '',
+    telefono: normalized?.telefono || '',
+    fechaNacimiento: normalized?.fechaNacimiento || '',
+    obraSocial: normalized?.obraSocial
+      ? {
+          id: normalized.obraSocial?._id?.toString() || null,
+          nombre: normalized.obraSocial?.nombre || ''
+        }
+      : null,
+    observaciones: getObservacionForProfessional(normalized, professionalId),
+    professional: normalized?.professional || null,
+    professionals: normalized?.professionals || []
+  };
+};
 
 const toAvisoApiDTO = (aviso) => ({
   id: aviso?._id?.toString() || null,
@@ -984,6 +1024,8 @@ export const updatePacienteApiV1 = async (req, res) => {
       return res.status(404).json({ error: 'Paciente no encontrado' });
     }
 
+    const hasObraSocialField = hasOwn(req.body, 'obraSocial');
+    const obraSocialId = normalizeObraSocialInput(obraSocial);
     const mergedObservaciones = mergeObservacionesForProfessional(
       paciente.observaciones,
       observaciones,
@@ -995,7 +1037,6 @@ export const updatePacienteApiV1 = async (req, res) => {
       apellido,
       dni,
       telefono,
-      obraSocial,
       edad,
       fechaNacimiento
     };
@@ -1008,6 +1049,10 @@ export const updatePacienteApiV1 = async (req, res) => {
       updatePayload.professionals = buildProfessionalList(professionals, scope.professionalId);
     }
 
+    if (hasObraSocialField && isPrimaryProfessional(paciente, scope.professionalId)) {
+      updatePayload.obraSocial = obraSocialId;
+    }
+
     const updated = await updatePacienteService(
       { _id: id, ...scope.professionalFilter },
       updatePayload
@@ -1017,7 +1062,16 @@ export const updatePacienteApiV1 = async (req, res) => {
       return res.status(404).json({ error: 'Paciente no encontrado' });
     }
 
-    return res.json({ paciente: toPacienteApiDTO(updated, scope.professionalId) });
+    let responsePaciente = updated;
+    if (hasObraSocialField) {
+      await upsertCoberturaForPacienteService(paciente._id, scope.professionalId, obraSocialId);
+      const refreshed = await getPaciente({ _id: id, ...scope.professionalFilter });
+      if (refreshed) {
+        responsePaciente = refreshed;
+      }
+    }
+
+    return res.json({ paciente: toPacienteApiDTO(responsePaciente, scope.professionalId) });
   } catch (error) {
     logger.error('Error al actualizar paciente (API v1):', error);
     if (error?.code === 11000) {

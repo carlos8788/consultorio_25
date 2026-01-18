@@ -45,8 +45,7 @@ export const createPacienteValidator = [
     .isLength({ max: 20 }).withMessage('El telefono no puede tener mas de 20 caracteres'),
 
   body('obraSocial')
-    .trim()
-    .notEmpty().withMessage('La obra social es obligatoria')
+    .optional({ nullable: true, checkFalsy: true })
     .isMongoId().withMessage('ID de obra social invalido'),
 
   body('observaciones')
@@ -85,8 +84,7 @@ export const updatePacienteValidator = [
     .isLength({ max: 20 }).withMessage('El telefono no puede tener mas de 20 caracteres'),
 
   body('obraSocial')
-    .optional()
-    .trim()
+    .optional({ nullable: true, checkFalsy: true })
     .isMongoId().withMessage('ID de obra social invalido'),
 
   body('observaciones')

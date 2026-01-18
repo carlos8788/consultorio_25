@@ -25,7 +25,9 @@ const userAccountSchema = new Schema({
   },
   profile: {
     nombre: { type: String, trim: true },
-    apellido: { type: String, trim: true }
+    apellido: { type: String, trim: true },
+    email: { type: String, trim: true },
+    telefono: { type: String, trim: true }
   },
   passwordUpdatedAt: {
     type: Date,

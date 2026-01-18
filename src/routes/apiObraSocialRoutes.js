@@ -1,7 +1,16 @@
 import { Router } from 'express';
 import { requireJwtAuth } from '../middlewares/jwtAuth.js';
 import { requireActiveSubscription } from '../middlewares/subscriptionGuard.js';
-import { listObrasSocialesApi } from '../controllers/obraSocialApiController.js';
+import { validate } from '../middlewares/validate.js';
+import {
+  createObraSocialValidator,
+  obraSocialEstadoValidator
+} from '../validators/obraSocialValidator.js';
+import {
+  listObrasSocialesApi,
+  createObraSocialApi,
+  updateObraSocialEstadoApi
+} from '../controllers/obraSocialApiController.js';
 
 const router = Router();
 
@@ -10,5 +19,7 @@ const router = Router();
 router.use(requireJwtAuth, requireActiveSubscription);
 
 router.get('/', listObrasSocialesApi);
+router.post('/', createObraSocialValidator, validate, createObraSocialApi);
+router.patch('/:id/estado', obraSocialEstadoValidator, validate, updateObraSocialEstadoApi);
 
 export default router;

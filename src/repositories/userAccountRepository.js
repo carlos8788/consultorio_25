@@ -43,6 +43,21 @@ export const updateUserAccountPassword = (id, passwordHash) =>
     .select('-passwordHash')
     .lean();
 
+export const updateUserAccountProfileFields = (id, profile = {}) => {
+  const update = Object.entries(profile).reduce((acc, [key, value]) => {
+    acc[`profile.${key}`] = value;
+    return acc;
+  }, {});
+
+  return UserAccount.findOneAndUpdate(
+    withNotDeleted({ _id: id }),
+    { $set: update },
+    { new: true, runValidators: true }
+  )
+    .select('-passwordHash')
+    .lean();
+};
+
 export const softDeleteUserAccount = (id, deletedBy = null) =>
   UserAccount.findOneAndUpdate(
     withNotDeleted({ _id: id }),

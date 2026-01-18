@@ -4,6 +4,7 @@ import {
   getPaciente,
   getPacienteIncludingDeleted,
   registerProfessionalForPaciente,
+  upsertCoberturaForPaciente as upsertCoberturaForPacienteService,
   updatePacienteIncludingDeleted,
   buildProfessionalOwnershipFilter
 } from '../services/pacienteService.js';
@@ -28,6 +29,18 @@ const calcularEdad = (fechaNacimiento) => {
 };
 
 const normalizeDni = (value) => String(value || '').trim();
+
+const normalizeObraSocialInput = (value) => {
+  if (value === undefined || value === null) return null;
+  if (typeof value === 'string' && !value.trim()) return null;
+  return value;
+};
+
+const buildCoberturaEntry = (professionalId, obraSocialId) => ({
+  professional: professionalId,
+  tipo: obraSocialId ? 'obraSocial' : 'particular',
+  obraSocial: obraSocialId || null
+});
 
 const hasProfessionalLink = (paciente, professionalId) => {
   if (!paciente || !professionalId) return false;
@@ -65,7 +78,11 @@ export const searchPacientesApi = async (req, res) => {
       professionalFilter: buildProfessionalOwnershipFilter(professionalScope.professionalId)
     });
 
-    res.json({ pacientes: pacientes.map(toPacienteSuggestionDTO) });
+    res.json({
+      pacientes: pacientes.map((paciente) =>
+        toPacienteSuggestionDTO(paciente, { professionalId: professionalScope.professionalId })
+      )
+    });
   } catch (error) {
     logger.error('Error al buscar pacientes (API):', error);
     res.status(500).json({ error: 'No se pudieron buscar pacientes' });
@@ -85,6 +102,7 @@ export const createPacienteApi = async (req, res) => {
     persistAdminProfessionalSelection(req, professionalId);
 
     const { apellido, nombre, dni, telefono, observaciones, obraSocial, fechaNacimiento } = req.body;
+    const obraSocialId = normalizeObraSocialInput(obraSocial);
 
     const normalizedDni = normalizeDni(dni);
     const observacionesList = buildObservacionesArray(observaciones, professionalId);
@@ -94,7 +112,7 @@ export const createPacienteApi = async (req, res) => {
       dni: normalizedDni || undefined,
       telefono,
       observaciones: observacionesList.length ? observacionesList : undefined,
-      obraSocial,
+      obraSocial: obraSocialId,
       fechaNacimiento: fechaNacimiento || undefined,
       edad: calcularEdad(fechaNacimiento)
     });
@@ -114,10 +132,11 @@ export const createPacienteApi = async (req, res) => {
 
           await updatePacienteIncludingDeleted({ _id: existing._id }, restorePayload);
           await registerProfessionalForPaciente(existing._id, professionalId);
+          await upsertCoberturaForPacienteService(existing._id, professionalId, obraSocialId);
 
           const restored = await getPaciente({ _id: existing._id });
           return res.status(200).json({
-            paciente: toPacienteSuggestionDTO(restored || existing),
+            paciente: toPacienteSuggestionDTO(restored || existing, { professionalId }),
             restored: true,
             professionalId
           });
@@ -133,9 +152,11 @@ export const createPacienteApi = async (req, res) => {
           }
         }
 
+        await upsertCoberturaForPacienteService(existing._id, professionalId, obraSocialId);
+
         const linkedPaciente = await getPaciente({ _id: existing._id });
         return res.status(200).json({
-          paciente: toPacienteSuggestionDTO(linkedPaciente || existing),
+          paciente: toPacienteSuggestionDTO(linkedPaciente || existing, { professionalId }),
           alreadyExists: true,
           linked: !linked,
           professionalId
@@ -146,13 +167,14 @@ export const createPacienteApi = async (req, res) => {
     const nuevoPaciente = await createPacienteService({
       ...basePayload,
       professional: professionalId,
-      professionals: [professionalId]
+      professionals: [professionalId],
+      coberturas: [buildCoberturaEntry(professionalId, obraSocialId)]
     });
 
     await registerProfessionalForPaciente(nuevoPaciente._id, professionalId);
 
     res.status(201).json({
-      paciente: toPacienteSuggestionDTO(nuevoPaciente),
+      paciente: toPacienteSuggestionDTO(nuevoPaciente, { professionalId }),
       professionalId
     });
   } catch (error) {

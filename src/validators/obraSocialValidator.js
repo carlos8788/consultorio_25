@@ -18,7 +18,21 @@ export const createObraSocialValidator = [
   
   body('padron')
     .optional()
-    .isIn(['Padrón A', 'Padrón B', 'Padrón C']).withMessage('Padrón inválido')
+    .isIn(['Padrón A', 'Padrón B', 'Categorizado']).withMessage('Padrón inválido'),
+
+  body('estado')
+    .optional()
+    .isIn(['activa', 'suspendida']).withMessage('Estado inválido'),
+
+  body('attachToProfessional')
+    .optional()
+    .isBoolean().withMessage('attachToProfessional debe ser booleano')
 ];
 
 export const updateObraSocialValidator = createObraSocialValidator;
+
+export const obraSocialEstadoValidator = [
+  body('estado')
+    .notEmpty().withMessage('El estado es obligatorio')
+    .isIn(['activa', 'suspendida']).withMessage('Estado inválido')
+];

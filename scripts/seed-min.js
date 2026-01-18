@@ -1,17 +1,71 @@
-import dotenv from 'dotenv';
+import fs from 'node:fs/promises';
+import path from 'node:path';
+import readline from 'node:readline';
 import mongoose from 'mongoose';
-import { connectDB } from '../src/config/database.js';
 import Professional from '../src/models/Professional.js';
 import ObraSocial from '../src/models/ObraSocial.js';
 import Paciente from '../src/models/Paciente.js';
 import Turno from '../src/models/Turno.js';
 import Subscription from '../src/models/Subscription.js';
+import NotaPaciente from '../src/models/NotaPaciente.js';
+import AvisoPaciente from '../src/models/AvisoPaciente.js';
+import InteresadoNotificacion from '../src/models/InteresadoNotificacion.js';
+import IdeaRequest from '../src/models/IdeaRequest.js';
+import DemoRequest from '../src/models/DemoRequest.js';
+import UserAccount from '../src/models/UserAccount.js';
 import { hashPassword } from '../src/utils/passwordUtils.js';
-
-dotenv.config();
 
 const log = (...messages) => {
   console.log('[seed:min]', ...messages);
+};
+
+/*
+pnpm run seed:min -- --db "mongodb://USER:PASS@HOST:PORT/NOMBREDB"
+
+  Con npm:
+
+  cd backend
+  npm run seed:min -- --db "mongodb://USER:PASS@HOST:PORT/NOMBREDB"
+*/
+
+const parseSeedDbUri = () => {
+  const args = process.argv.slice(2);
+  const findValueForFlag = (flag) => {
+    const direct = `${flag}=`;
+    const directMatch = args.find((arg) => arg.startsWith(direct));
+    if (directMatch) {
+      const value = directMatch.slice(direct.length);
+      return value || null;
+    }
+
+    const index = args.indexOf(flag);
+    if (index === -1) return null;
+    const next = args[index + 1];
+    if (!next || next.startsWith('-')) return null;
+    return next;
+  };
+
+  return (
+    findValueForFlag('--db')
+    || findValueForFlag('--mongodb-uri')
+    || findValueForFlag('--uri')
+    || findValueForFlag('-d')
+  );
+};
+
+const assertDbNameInUri = (uri) => {
+  let parsed;
+  try {
+    parsed = new URL(uri);
+  } catch (error) {
+    throw new Error('La URI de MongoDB no es valida. Usa un formato como mongodb://host/db.');
+  }
+
+  const pathname = parsed.pathname || '';
+  const dbName = pathname.replace(/^\/+/, '').split('/')[0];
+  if (!dbName) {
+    throw new Error('La URI de MongoDB debe incluir el nombre de la base (ej: mongodb://host/mi-db).');
+  }
 };
 
 const toSafeInt = (value, fallback) => {
@@ -41,8 +95,176 @@ const buildFutureDate = (daysAhead) => {
   return base;
 };
 
+const COLLECTIONS = [
+  { label: 'professionals', model: Professional },
+  { label: 'useraccounts', model: UserAccount },
+  { label: 'subscriptions', model: Subscription },
+  { label: 'obrasocials', model: ObraSocial },
+  { label: 'pacientes', model: Paciente },
+  { label: 'turnos', model: Turno },
+  { label: 'notapacientes', model: NotaPaciente },
+  { label: 'avisopacientes', model: AvisoPaciente },
+  { label: 'interesadonotificacions', model: InteresadoNotificacion },
+  { label: 'idearequests', model: IdeaRequest },
+  { label: 'demorequests', model: DemoRequest }
+];
+
+const createPrompt = () => {
+  const rl = readline.createInterface({
+    input: process.stdin,
+    output: process.stdout
+  });
+
+  const ask = (question) =>
+    new Promise((resolve) => {
+      rl.question(question, (answer) => resolve(answer));
+    });
+
+  return {
+    ask,
+    close: () => rl.close()
+  };
+};
+
+const promptYesNo = async (ask, question) => {
+  const answer = String(await ask(question)).trim().toLowerCase();
+  return answer === 's' || answer === 'si' || answer === 'y' || answer === 'yes';
+};
+
+const buildBackupDir = () => {
+  const stamp = new Date().toISOString().replace(/[:.]/g, '-');
+  return path.join(process.cwd(), 'scripts', 'seed-backups', stamp);
+};
+
+const escapeCsv = (value) => {
+  const text = String(value ?? '');
+  return `"${text.replace(/"/g, '""')}"`;
+};
+
+const backupCollections = async (collections, backupDir) => {
+  await fs.mkdir(backupDir, { recursive: true });
+
+  for (const { label, model } of collections) {
+    const docs = await model.find({}).lean();
+    if (!docs.length) {
+      continue;
+    }
+
+    const rows = ['_id,data'];
+    docs.forEach((doc) => {
+      const id = doc?._id?.toString?.() || '';
+      const payload = JSON.stringify(doc);
+      rows.push([escapeCsv(id), escapeCsv(payload)].join(','));
+    });
+
+    const filePath = path.join(backupDir, `${label}.csv`);
+    await fs.writeFile(filePath, rows.join('\n'), 'utf8');
+  }
+};
+
+const getCollectionStats = async (collections) => {
+  const stats = [];
+  for (const { label, model } of collections) {
+    const count = await model.countDocuments();
+    stats.push({ label, count });
+  }
+  return stats;
+};
+
+const purgeCollections = async (collections) => {
+  for (const { model } of collections) {
+    await model.deleteMany({});
+  }
+};
+
+const upsertProfessionalObraSocial = async (professionalId, obraSocialId, estado) => {
+  const updateResult = await Professional.updateOne(
+    { _id: professionalId, 'obrasSociales.obraSocial': obraSocialId },
+    { $set: { 'obrasSociales.$.estado': estado } }
+  );
+
+  if (updateResult.matchedCount === 0) {
+    await Professional.updateOne(
+      { _id: professionalId },
+      {
+        $push: {
+          obrasSociales: {
+            obraSocial: obraSocialId,
+            estado
+          }
+        }
+      }
+    );
+  }
+};
+
+const upsertPacienteCobertura = async (pacienteId, professionalId, obraSocialId) => {
+  const tipo = obraSocialId ? 'obraSocial' : 'particular';
+  const updateResult = await Paciente.updateOne(
+    { _id: pacienteId, 'coberturas.professional': professionalId },
+    {
+      $set: {
+        'coberturas.$.tipo': tipo,
+        'coberturas.$.obraSocial': obraSocialId || null
+      }
+    }
+  );
+
+  if (updateResult.matchedCount === 0) {
+    await Paciente.updateOne(
+      { _id: pacienteId },
+      {
+        $push: {
+          coberturas: {
+            professional: professionalId,
+            tipo,
+            obraSocial: obraSocialId || null
+          }
+        }
+      }
+    );
+  }
+};
+
 const seed = async () => {
-  await connectDB();
+  const seedDbUri = parseSeedDbUri();
+  if (!seedDbUri) {
+    throw new Error('Falta el parametro --db con la URI de MongoDB.');
+  }
+
+  assertDbNameInUri(seedDbUri);
+  log('Usando MONGODB_URI provisto por parametro.');
+  await mongoose.connect(seedDbUri);
+
+  const stats = await getCollectionStats(COLLECTIONS);
+  log('Conteo actual de colecciones:');
+  stats.forEach(({ label, count }) => {
+    log(`${label}: ${count}`);
+  });
+
+  const prompt = createPrompt();
+  try {
+    const shouldBackup = await promptYesNo(
+      prompt.ask,
+      'Deseas generar backup CSV de los datos existentes? (s/N): '
+    );
+    if (shouldBackup) {
+      const backupDir = buildBackupDir();
+      await backupCollections(COLLECTIONS, backupDir);
+      log(`Backup CSV generado en: ${backupDir}`);
+    }
+
+    const shouldPurge = await promptYesNo(
+      prompt.ask,
+      'Deseas borrar TODOS los datos existentes antes de seed? (s/N): '
+    );
+    if (shouldPurge) {
+      await purgeCollections(COLLECTIONS);
+      log('Datos existentes eliminados.');
+    }
+  } finally {
+    prompt.close();
+  }
 
   const professionalUser = process.env.SEED_PROFESSIONAL_USER || 'prof-demo';
   const professionalPassword = process.env.SEED_PROFESSIONAL_PASSWORD || 'demo1234';
@@ -118,6 +340,10 @@ const seed = async () => {
     log('Obra social existente:', obraSocial._id.toString());
   }
 
+  if (obraSocial?._id) {
+    await upsertProfessionalObraSocial(professional._id, obraSocial._id, 'activa');
+  }
+
   const pacienteDni = process.env.SEED_PACIENTE_DNI || '12345678';
   const pacienteFechaNacimiento = process.env.SEED_PACIENTE_FECHA_NACIMIENTO || '1990-01-15';
   let paciente = await Paciente.findOne({ dni: pacienteDni });
@@ -130,9 +356,14 @@ const seed = async () => {
       telefono: process.env.SEED_PACIENTE_TELEFONO || '11-5555-6789',
       fechaNacimiento: pacienteFechaNacimiento,
       edad: calculateAge(pacienteFechaNacimiento),
-      obraSocial: obraSocial?._id || undefined,
+      obraSocial: obraSocial?._id || null,
       professional: professional._id,
-      professionals: [professional._id]
+      professionals: [professional._id],
+      coberturas: [{
+        professional: professional._id,
+        tipo: obraSocial?._id ? 'obraSocial' : 'particular',
+        obraSocial: obraSocial?._id || null
+      }]
     });
     log('Paciente creado:', paciente._id.toString());
   } else {
@@ -165,6 +396,10 @@ const seed = async () => {
     } else {
       log('Paciente existente:', paciente._id.toString());
     }
+  }
+
+  if (paciente?._id) {
+    await upsertPacienteCobertura(paciente._id, professional._id, obraSocial?._id || null);
   }
 
   const turnoHora = process.env.SEED_TURNO_HORA || '10:00';

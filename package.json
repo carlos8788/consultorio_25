@@ -9,7 +9,8 @@
     "start": "NODE_ENV=production node src/server.js",
     "dev:vercel": "vercel dev --listen 3000",
     "init": "pnpm install",
-    "seed:min": "node scripts/seed-min.js"
+    "seed:min": "node scripts/seed-min.js",
+    "seed:demo": "node scripts/seed-demo.js"
   },
   "keywords": [
     "express",
@@ -29,7 +30,8 @@
     "jsonwebtoken": "^9.0.3",
     "mongoose": "^9.1.1",
     "mongoose-paginate-v2": "^1.9.1",
-    "morgan": "^1.10.1"
+    "morgan": "^1.10.1",
+    "nodemailer": "^6.10.1"
   },
   "devDependencies": {
     "nodemon": "^3.1.11"

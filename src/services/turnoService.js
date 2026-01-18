@@ -27,9 +27,10 @@ export const listTurnos = async ({ page, limit, fecha, professionalFilter }) => 
     populate: [
       {
         path: 'paciente',
-        populate: {
-          path: 'obraSocial'
-        }
+        populate: [
+          { path: 'obraSocial' },
+          { path: 'coberturas.obraSocial' }
+        ]
       },
       'professional'
     ],

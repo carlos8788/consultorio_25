@@ -36,6 +36,26 @@ const pacienteSchema = new Schema({
     type: Schema.Types.ObjectId,
     ref: 'ObraSocial'
   },
+  coberturas: {
+    type: [{
+      professional: {
+        type: Schema.Types.ObjectId,
+        ref: 'Professional',
+        required: true
+      },
+      tipo: {
+        type: String,
+        enum: ['particular', 'obraSocial'],
+        default: 'particular'
+      },
+      obraSocial: {
+        type: Schema.Types.ObjectId,
+        ref: 'ObraSocial',
+        default: null
+      }
+    }],
+    default: []
+  },
   dni: {
     type: String,
     required: [true, 'El DNI es obligatorio'],
@@ -97,6 +117,7 @@ pacienteSchema.plugin(mongoosePaginate);
 pacienteSchema.index({ apellido: 1, nombre: 1 });
 pacienteSchema.index({ professional: 1 });
 pacienteSchema.index({ professionals: 1 });
+pacienteSchema.index({ 'coberturas.professional': 1 });
 pacienteSchema.index({ doctor: 1 }); // legacy
 pacienteSchema.index({ doctores: 1 }); // legacy
 pacienteSchema.index({ deletedAt: 1 });

@@ -16,6 +16,7 @@ export const paginatePacientes = (query, options) =>
 export const findPaciente = (filter) =>
   Paciente.findOne(withNotDeleted(filter))
     .populate('obraSocial')
+    .populate('coberturas.obraSocial')
     .populate('professional')
     .populate('professionals')
     .lean();
@@ -65,6 +66,35 @@ export const searchPacientes = (query, { limit = 8 } = {}) =>
     .sort({ apellido: 1, nombre: 1 })
     .limit(limit)
     .populate('obraSocial', 'nombre')
+    .populate('coberturas.obraSocial', 'nombre')
     .lean();
 
 export const countPacientes = (filter = {}) => Paciente.countDocuments(withNotDeleted(filter));
+
+export const upsertCoberturaForPaciente = async (pacienteId, professionalId, obraSocialId) => {
+  const tipo = obraSocialId ? 'obraSocial' : 'particular';
+  const updateResult = await Paciente.updateOne(
+    { _id: pacienteId, 'coberturas.professional': professionalId },
+    {
+      $set: {
+        'coberturas.$.tipo': tipo,
+        'coberturas.$.obraSocial': obraSocialId || null
+      }
+    }
+  );
+
+  if (updateResult.matchedCount === 0) {
+    await Paciente.updateOne(
+      { _id: pacienteId },
+      {
+        $push: {
+          coberturas: {
+            professional: professionalId,
+            tipo,
+            obraSocial: obraSocialId || null
+          }
+        }
+      }
+    );
+  }
+};

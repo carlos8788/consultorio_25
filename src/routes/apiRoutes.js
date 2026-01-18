@@ -5,6 +5,8 @@ import professionalRoutes from './apiProfessionalRoutes.js';
 import pacienteRoutes from './apiPacienteRoutes.js';
 import turnoRoutes from './apiTurnoRoutes.js';
 import interesadoRoutes from './apiInteresadoRoutes.js';
+import profileRoutes from './apiProfileRoutes.js';
+import configRoutes from './apiConfigRoutes.js';
 import { setProfessionalContext } from '../controllers/adminContextController.js';
 import { requireJwtAuth } from '../middlewares/jwtAuth.js';
 import { requireRole, ROLES } from '../middlewares/roleGuard.js';
@@ -18,6 +20,12 @@ const router = Router();
 router.post('/auth/login', loginApi);
 router.post('/auth/logout', logoutApi);
 router.get('/auth/me', requireJwtAuth, meApi);
+
+// Perfil usuario/profesional
+router.use('/profile', profileRoutes);
+
+// Configuracion del sistema
+router.use('/config', configRoutes);
 
 // Publico (landing, formularios)
 router.use('/public', publicRoutes);

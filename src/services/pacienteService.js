@@ -7,6 +7,7 @@ import {
   updatePacienteAny as updatePacienteAnyRepo,
   deletePaciente as deletePacienteRepo,
   addProfessionalReference,
+  upsertCoberturaForPaciente as upsertCoberturaForPacienteRepo,
   searchPacientes as searchPacientesRepo,
   countPacientes
 } from '../repositories/pacienteRepository.js';
@@ -49,7 +50,127 @@ const buildSearchQuery = (search) => {
   return { $or: orConditions };
 };
 
-const buildObraSocialFilter = ({ obraSocialId, particularIds = [] } = {}) => {
+const buildNoCoverageFilter = (professionalId) => ({
+  coberturas: { $not: { $elemMatch: { professional: professionalId } } }
+});
+
+const buildCoberturaParticularFilter = (professionalId) => ({
+  coberturas: {
+    $elemMatch: {
+      professional: professionalId,
+      $or: [
+        { tipo: 'particular' },
+        { obraSocial: null },
+        { obraSocial: { $exists: false } }
+      ]
+    }
+  }
+});
+
+const buildCoberturaObraSocialFilter = (professionalId, obraSocialId) => ({
+  coberturas: {
+    $elemMatch: {
+      professional: professionalId,
+      tipo: 'obraSocial',
+      obraSocial: obraSocialId
+    }
+  }
+});
+
+const buildFallbackParticularFilter = (particularIds = []) => {
+  const orConditions = [{ obraSocial: null }, { obraSocial: { $exists: false } }];
+  if (Array.isArray(particularIds) && particularIds.length) {
+    orConditions.push({ obraSocial: { $in: particularIds } });
+  }
+  return { $or: orConditions };
+};
+
+const buildFallbackConCoberturaFilter = (particularIds = []) => {
+  const base = { obraSocial: { $ne: null, $exists: true } };
+  if (Array.isArray(particularIds) && particularIds.length) {
+    return { $and: [base, { obraSocial: { $nin: particularIds } }] };
+  }
+  return base;
+};
+
+const buildObraSocialFilter = ({ obraSocialId, particularIds = [], professionalId } = {}) => {
+  if (!obraSocialId) return {};
+
+  if (!professionalId) {
+    if (obraSocialId === 'particular') {
+      const orConditions = [{ obraSocial: null }, { obraSocial: { $exists: false } }];
+      if (Array.isArray(particularIds) && particularIds.length) {
+        orConditions.push({ obraSocial: { $in: particularIds } });
+      }
+      return { $or: orConditions };
+    }
+
+    if (obraSocialId === 'con_cobertura') {
+      return buildFallbackConCoberturaFilter(particularIds);
+    }
+
+    return { obraSocial: obraSocialId };
+  }
+
+  if (obraSocialId === 'particular') {
+    return {
+      $or: [
+        buildCoberturaParticularFilter(professionalId),
+        {
+          $and: [
+            buildNoCoverageFilter(professionalId),
+            buildFallbackParticularFilter(particularIds)
+          ]
+        }
+      ]
+    };
+  }
+
+  if (obraSocialId === 'con_cobertura') {
+    return {
+      $or: [
+        {
+          coberturas: {
+            $elemMatch: {
+              professional: professionalId,
+              tipo: 'obraSocial',
+              obraSocial: { $ne: null }
+            }
+          }
+        },
+        {
+          $and: [
+            buildNoCoverageFilter(professionalId),
+            buildFallbackConCoberturaFilter(particularIds)
+          ]
+        }
+      ]
+    };
+  }
+
+  return {
+    $or: [
+      buildCoberturaObraSocialFilter(professionalId, obraSocialId),
+      {
+        $and: [
+          buildNoCoverageFilter(professionalId),
+          { obraSocial: obraSocialId }
+        ]
+      }
+    ]
+  };
+};
+
+const mergeFilters = (base, extra) => {
+  const baseKeys = base && Object.keys(base).length ? base : null;
+  const extraKeys = extra && Object.keys(extra).length ? extra : null;
+  if (!baseKeys && !extraKeys) return {};
+  if (baseKeys && !extraKeys) return base;
+  if (!baseKeys && extraKeys) return extra;
+  return { $and: [base, extra] };
+};
+
+const buildObraSocialFilterLegacy = ({ obraSocialId, particularIds = [] } = {}) => {
   if (!obraSocialId) return {};
 
   if (obraSocialId === 'particular') {
@@ -87,7 +208,7 @@ export const listPacientes = async ({
     filters.push(professionalFilter);
   }
 
-  const obraFilter = buildObraSocialFilter({ obraSocialId, particularIds });
+  const obraFilter = buildObraSocialFilter({ obraSocialId, particularIds, professionalId });
   if (Object.keys(obraFilter).length) {
     filters.push(obraFilter);
   }
@@ -102,7 +223,7 @@ export const listPacientes = async ({
     page: parseInt(page),
     limit: parseInt(limit),
     sort: { apellido: 1, nombre: 1 },
-    populate: ['obraSocial', 'professional', 'professionals'],
+    populate: ['obraSocial', 'coberturas.obraSocial', 'professional', 'professionals'],
     lean: true
   };
 
@@ -138,6 +259,13 @@ export const registerProfessionalForPaciente = (pacienteId, professionalId) => {
     return null;
   }
   return addProfessionalReference(pacienteId, professionalId);
+};
+
+export const upsertCoberturaForPaciente = (pacienteId, professionalId, obraSocialId) => {
+  if (!pacienteId || !professionalId) {
+    return null;
+  }
+  return upsertCoberturaForPacienteRepo(pacienteId, professionalId, obraSocialId);
 };
 
 
@@ -220,7 +348,7 @@ export const findPacientesByPhones = async ({ phones = [], professionalFilter } 
   return searchPacientesRepo(query, { limit: Math.max(regexList.length * 3, 10) });
 };
 
-export const getPacienteStats = async ({ professionalFilter, particularIds = [] }) => {
+export const getPacienteStats = async ({ professionalFilter, professionalId, particularIds = [] }) => {
   const baseFilter = professionalFilter || {};
   const total = await countPacientes(baseFilter);
 
@@ -231,14 +359,11 @@ export const getPacienteStats = async ({ professionalFilter, particularIds = [] 
     createdAt: { $gte: inicioMes }
   });
 
-  const sinObraSocial = await countPacientes({
-    ...baseFilter,
-    $or: [
-      { obraSocial: null },
-      { obraSocial: { $exists: false } },
-      ...(Array.isArray(particularIds) && particularIds.length ? [{ obraSocial: { $in: particularIds } }] : [])
-    ]
-  });
+  const sinObraSocialFilter = professionalId
+    ? buildObraSocialFilter({ obraSocialId: 'particular', professionalId, particularIds })
+    : buildObraSocialFilterLegacy({ obraSocialId: 'particular', particularIds });
+
+  const sinObraSocial = await countPacientes(mergeFilters(baseFilter, sinObraSocialFilter));
 
   const conObraSocial = Math.max(total - sinObraSocial, 0);
 

@@ -1,3 +1,5 @@
+import { normalizePacienteCobertura } from './pacienteCoberturas.js';
+
 const normalizeText = (value) => (typeof value === 'string' ? value.trim() : '');
 
 const toIdString = (value) => {
@@ -96,8 +98,9 @@ export const getObservacionForProfessional = (paciente, professionalId) => {
 
 export const normalizePacienteObservaciones = (paciente, professionalId) => {
   if (!paciente) return paciente;
+  const normalized = normalizePacienteCobertura(paciente, professionalId);
   return {
-    ...paciente,
-    observaciones: getObservacionForProfessional(paciente, professionalId)
+    ...normalized,
+    observaciones: getObservacionForProfessional(normalized, professionalId)
   };
 };

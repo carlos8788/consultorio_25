@@ -19,7 +19,7 @@ const obraSocialSchema = new Schema({
   padron: {
     type: String,
     default: 'Padrón A',
-    enum: ['Padrón A', 'Padrón B', 'Padrón C']
+    enum: ['Padrón A', 'Padrón B', 'Categorizado']
   }
 }, {
   timestamps: true,
