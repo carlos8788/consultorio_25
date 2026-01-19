@@ -22,8 +22,16 @@ export const verifyJwt = (token) => {
   }
 };
 
+const getHeader = (req, name) => {
+  if (!req) return null;
+  if (typeof req.get === 'function') {
+    return req.get(name);
+  }
+  return req.headers?.[name.toLowerCase()] || req.headers?.[name] || null;
+};
+
 export const extractBearerToken = (req) => {
-  const authHeader = req.get('authorization') || req.get('Authorization');
+  const authHeader = getHeader(req, 'authorization') || getHeader(req, 'Authorization');
   if (!authHeader) return null;
   const [scheme, token] = authHeader.split(' ');
   if (scheme !== 'Bearer' || !token) return null;

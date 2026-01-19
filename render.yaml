@@ -2,9 +2,8 @@ services:
   - type: web
     name: consultorio-backend
     runtime: node
-    rootDir: backend
-    buildCommand: corepack enable && pnpm install --frozen-lockfile
-    startCommand: pnpm start
+    buildCommand: yarn install
+    startCommand: npm run start
     autoDeploy: true
     envVars:
       - key: NODE_ENV
@@ -28,5 +27,5 @@ services:
     name: keep-alive
     runtime: node
     schedule: "*/10 * * * *"  # Cada 10 minutos
-    buildCommand: corepack enable && pnpm install --frozen-lockfile
-    startCommand: curl -X GET https://consultorio-25.onrender.com/api/health
+    buildCommand: yarn install
+    startCommand: "node -e \"fetch('https://consultorio-25.onrender.com/api/public/health').then(r=>{console.log('status', r.status);}).catch(e=>{console.error(e);process.exit(1);})\""

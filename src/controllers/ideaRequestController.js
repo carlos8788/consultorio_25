@@ -1,6 +1,6 @@
 import { createIdeaRequest } from '../services/ideaRequestService.js';
 import { countIdeaRequests } from '../repositories/ideaRequestRepository.js';
-import { sendIdeaEmail } from '../services/emailService.js';
+import { createThreadFromIdea } from '../services/messageThreadService.js';
 import { logger } from '../logger/index.js';
 
 const RATE_LIMIT_WINDOW_MS = 15 * 60 * 1000;
@@ -62,8 +62,11 @@ export const createIdeaRequestApi = async (req, res) => {
       userAgent: req.get('user-agent')
     });
 
-    const mailSent = await sendIdeaEmail(created);
-    return res.status(201).json({ request: toIdeaRequestDTO(created), mailSent });
+    const thread = await createThreadFromIdea(created);
+    return res.status(201).json({
+      request: toIdeaRequestDTO(created),
+      threadId: thread?._id?.toString?.() || null
+    });
   } catch (error) {
     logger.error('Error al crear idea:', error);
     return res.status(500).json({ error: 'No se pudo crear la idea' });

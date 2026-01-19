@@ -26,6 +26,15 @@ export const listUserAccounts = () =>
     .sort({ role: 1, username: 1 })
     .lean();
 
+export const listAdminEmails = async () => {
+  const admins = await UserAccount.find(withNotDeleted({ role: { $in: ['admin', 'superadmin'] }, active: true }))
+    .select('profile.email')
+    .lean();
+  return admins
+    .map((account) => account?.profile?.email)
+    .filter((email) => typeof email === 'string' && email.trim().length > 0);
+};
+
 export const getUserAccountById = (id, { includePassword = false } = {}) => {
   const query = UserAccount.findOne(withNotDeleted({ _id: id }));
   if (includePassword) {

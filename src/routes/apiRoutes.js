@@ -13,6 +13,7 @@ import { requireRole, ROLES } from '../middlewares/roleGuard.js';
 import { createUserApi, listUsersApi, resetUserPasswordApi } from '../controllers/userAdminController.js';
 import obraSocialApiRoutes from './apiObraSocialRoutes.js';
 import notaRoutes from './apiNotaRoutes.js';
+import messageRoutes from './apiMessageRoutes.js';
 
 const router = Router();
 
@@ -55,6 +56,9 @@ router.use('/turnos', turnoRoutes);
 
 // Interesados (API)
 router.use('/interesados', interesadoRoutes);
+
+// Mensajes / notificaciones internas
+router.use('/messages', messageRoutes);
 
 // Administracion (solo superadmin)
 router.post('/admin/users', requireJwtAuth, requireRole([ROLES.SUPERADMIN]), createUserApi);
