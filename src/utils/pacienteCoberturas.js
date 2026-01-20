@@ -44,11 +44,20 @@ export const resolvePacienteCobertura = (paciente, professionalId) => {
   };
 };
 
+const toPlainPaciente = (paciente) => {
+  if (!paciente || typeof paciente !== 'object') return paciente;
+  if (typeof paciente.toObject === 'function') {
+    return paciente.toObject();
+  }
+  return paciente;
+};
+
 export const normalizePacienteCobertura = (paciente, professionalId) => {
   if (!paciente) return paciente;
-  const { obraSocial } = resolvePacienteCobertura(paciente, professionalId);
+  const plain = toPlainPaciente(paciente);
+  const { obraSocial } = resolvePacienteCobertura(plain, professionalId);
   return {
-    ...paciente,
+    ...plain,
     obraSocial: obraSocial || null
   };
 };
