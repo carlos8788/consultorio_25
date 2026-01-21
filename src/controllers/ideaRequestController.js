@@ -30,11 +30,11 @@ const toIdeaRequestDTO = (request) => ({
 
 export const createIdeaRequestApi = async (req, res) => {
   try {
-    if (req.body?.website) {
-      return res.status(201).json({ request: null, ignored: true });
+    if (req.body?.website || req.body?.honeypot || req.body?.hp) {
+      return res.status(400).json({ error: 'Solicitud invalida' });
     }
 
-    const ip = extractIp(req);
+    const ip = req.publicFormSecurity?.ip || extractIp(req);
     const now = Date.now();
     const windowStart = new Date(now - RATE_LIMIT_WINDOW_MS);
 

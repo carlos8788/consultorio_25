@@ -63,8 +63,9 @@ const corsOptions = {
 
 // Middlewares
 app.use(morgan(process.env.LOG_LEVEL || 'dev'));
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+const bodyLimit = process.env.BODY_LIMIT || '100kb';
+app.use(express.json({ limit: bodyLimit, strict: true }));
+app.use(express.urlencoded({ extended: true, limit: bodyLimit, parameterLimit: 50 }));
 app.use((req, res, next) => {
   if (req.path.startsWith('/api/')) {
     res.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
@@ -101,6 +102,9 @@ app.use((req, res) => {
 
 // Manejo de errores generales
 app.use((err, req, res, next) => {
+  if (err?.type === 'entity.too.large' || err?.status === 413) {
+    return res.status(413).json({ error: 'Payload demasiado grande' });
+  }
   logger.error('Error:', err);
   res.status(err.status || 500).json({
     error: err.message || 'Ha ocurrido un error en el servidor',

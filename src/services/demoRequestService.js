@@ -2,14 +2,24 @@ import { createDemoRequest as createDemoRequestRepo } from '../repositories/demo
 
 const normalizeValue = (value) => (typeof value === 'string' ? value.trim() : value);
 
+const sanitizeText = (value) => {
+  if (typeof value !== 'string') return value;
+  return value
+    .replace(/\r\n/g, '\n')
+    .replace(/[<>]/g, '')
+    .replace(/[ \t]+/g, ' ')
+    .replace(/[^\S\r\n]+/g, ' ')
+    .trim();
+};
+
 export const createDemoRequest = (data = {}) => createDemoRequestRepo({
-  nombre: normalizeValue(data.nombre) || '',
+  nombre: sanitizeText(normalizeValue(data.nombre)) || '',
   email: normalizeValue(data.email) || '',
-  telefono: normalizeValue(data.telefono) || '',
+  telefono: sanitizeText(normalizeValue(data.telefono)) || '',
   ip: normalizeValue(data.ip) || undefined,
-  centro: normalizeValue(data.centro) || undefined,
-  mensaje: normalizeValue(data.mensaje) || undefined,
+  centro: sanitizeText(normalizeValue(data.centro)) || undefined,
+  mensaje: sanitizeText(normalizeValue(data.mensaje)) || undefined,
   intent: data.intent || 'demo',
-  source: normalizeValue(data.source) || 'landing',
+  source: sanitizeText(normalizeValue(data.source)) || 'landing',
   estado: 'nuevo'
 });

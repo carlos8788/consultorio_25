@@ -31,7 +31,11 @@ const toDemoRequestDTO = (request) => ({
 
 export const createDemoRequestApi = async (req, res) => {
   try {
-    const ip = extractIp(req);
+    if (req.body?.website || req.body?.honeypot || req.body?.hp) {
+      return res.status(400).json({ error: 'Solicitud invalida' });
+    }
+
+    const ip = req.publicFormSecurity?.ip || extractIp(req);
     const now = Date.now();
     const windowStart = new Date(now - RATE_LIMIT_WINDOW_MS);
 
