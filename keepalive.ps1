@@ -1,4 +1,5 @@
 $URL = "https://consultorio-25.onrender.com/api/public/health"
+$URL2 = "https://crm-consultorio-mvp.onrender.com/api/public/health"
 
 while ($true) {
     $now = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
@@ -15,6 +16,23 @@ while ($true) {
             | Out-Null
 
         $sw.Stop()
+        Write-Host "[$now] OK - Tiempo: $($sw.Elapsed.TotalSeconds)s" -ForegroundColor Green
+    }
+    catch {
+        Write-Host "[$now] ERROR - $($_.Exception.Message)" -ForegroundColor Red
+    }
+
+    try {
+        $sw2 = [System.Diagnostics.Stopwatch]::StartNew()
+
+        Invoke-WebRequest `
+            -Uri $URL2 `
+            -Method GET `
+            -UseBasicParsing `
+            -TimeoutSec 70 `
+            | Out-Null
+
+        $sw2.Stop()
         Write-Host "[$now] OK - Tiempo: $($sw.Elapsed.TotalSeconds)s" -ForegroundColor Green
     }
     catch {

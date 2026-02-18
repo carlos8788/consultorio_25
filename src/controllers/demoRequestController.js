@@ -2,19 +2,12 @@ import { createDemoRequest } from '../services/demoRequestService.js';
 import { countDemoRequests } from '../repositories/demoRequestRepository.js';
 import { logger } from '../logger/index.js';
 import { createThreadFromDemo } from '../services/messageThreadService.js';
+import { getClientIp } from '../utils/requestIp.js';
 
 const RATE_LIMIT_WINDOW_MS = 15 * 60 * 1000;
 const RATE_LIMIT_MAX = 3;
 const MAX_PENDING_PER_IP = 5;
 const MAX_GLOBAL_PENDING = 500;
-
-const extractIp = (req) => {
-  const forwarded = req.headers['x-forwarded-for'];
-  if (typeof forwarded === 'string' && forwarded.trim()) {
-    return forwarded.split(',')[0].trim();
-  }
-  return req.ip || null;
-};
 
 const toDemoRequestDTO = (request) => ({
   id: request?._id?.toString?.() || null,
@@ -35,7 +28,7 @@ export const createDemoRequestApi = async (req, res) => {
       return res.status(400).json({ error: 'Solicitud invalida' });
     }
 
-    const ip = req.publicFormSecurity?.ip || extractIp(req);
+    const ip = req.publicFormSecurity?.ip || getClientIp(req);
     const now = Date.now();
     const windowStart = new Date(now - RATE_LIMIT_WINDOW_MS);
 

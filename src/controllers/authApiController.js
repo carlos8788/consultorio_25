@@ -1,7 +1,7 @@
 import crypto from 'crypto';
 import { authenticateUser } from '../services/authService.js';
 import { signJwt } from '../utils/jwt.js';
-import { jwtConfig } from '../config/jwt.js';
+import { resolveJwtExpiresIn } from '../config/jwt.js';
 import { authCookieConfig } from '../config/auth.js';
 import { parseDurationToMs } from '../utils/time.js';
 import { logger } from '../logger/index.js';
@@ -30,9 +30,13 @@ const buildCsrfCookieOptions = (maxAgeMs) => ({
   ...(maxAgeMs ? { maxAge: maxAgeMs } : {})
 });
 
+const normalizeRememberMe = (value) => (
+  value === true || value === 1 || value === '1' || value === 'true'
+);
+
 export const loginApi = async (req, res) => {
   try {
-    const { username, password } = req.body || {};
+    const { username, password, rememberMe } = req.body || {};
     if (!username || !password) {
       return res.status(400).json({ error: 'Faltan credenciales' });
     }
@@ -54,8 +58,10 @@ export const loginApi = async (req, res) => {
       professionalName,
     };
 
-    const token = signJwt(payload);
-    const maxAgeMs = parseDurationToMs(jwtConfig.expiresIn);
+    const shouldRemember = normalizeRememberMe(rememberMe);
+    const expiresIn = resolveJwtExpiresIn(shouldRemember);
+    const token = signJwt(payload, { expiresIn });
+    const maxAgeMs = parseDurationToMs(expiresIn);
     const csrfToken = crypto.randomBytes(32).toString('hex');
 
     res.cookie(authCookieConfig.name, token, buildCookieOptions(maxAgeMs));
@@ -64,7 +70,8 @@ export const loginApi = async (req, res) => {
     return res.json({
       token,
       csrfToken,
-      expiresIn: jwtConfig.expiresIn,
+      expiresIn,
+      rememberMe: shouldRemember,
       user: {
         id: payload.sub,
         username: payload.username,

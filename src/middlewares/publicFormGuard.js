@@ -1,5 +1,6 @@
 import crypto from 'crypto';
 import { logger } from '../logger/index.js';
+import { getClientIp } from '../utils/requestIp.js';
 
 const RATE_STORE = new Map();
 const BACKOFF_STORE = new Map();
@@ -24,21 +25,7 @@ const isPlainObject = (value) => (
   value !== null && typeof value === 'object' && Object.getPrototypeOf(value) === Object.prototype
 );
 
-const extractIp = (req) => {
-  const cfConnectingIp = req.headers['cf-connecting-ip'];
-  if (typeof cfConnectingIp === 'string' && cfConnectingIp.trim()) {
-    return cfConnectingIp.trim();
-  }
-  const forwarded = req.headers['x-forwarded-for'];
-  if (typeof forwarded === 'string' && forwarded.trim()) {
-    return forwarded.split(',')[0].trim();
-  }
-  const realIp = req.headers['x-real-ip'];
-  if (typeof realIp === 'string' && realIp.trim()) {
-    return realIp.trim();
-  }
-  return req.ip || null;
-};
+const extractIp = (req) => getClientIp(req);
 
 const getHeaderValue = (req, name) => {
   const value = req.get(name);
@@ -61,7 +48,11 @@ const buildFingerprint = (req, ip, userAgent) => {
   return hash.slice(0, 32);
 };
 
-const buildClientKey = (ip, fingerprint) => `${ip || 'unknown'}:${fingerprint || 'unknown'}`;
+const buildClientKey = (ip, fingerprint) => {
+  const safeFingerprint = fingerprint || 'unknown';
+  if (ip) return `${ip}:${safeFingerprint}`;
+  return `fp:${safeFingerprint}`;
+};
 
 const validatePayloadShape = (body, allowedFields, maxKeys, maxFieldLength) => {
   if (!isPlainObject(body)) {

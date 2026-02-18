@@ -22,7 +22,18 @@ dotenv.config();
 // Crear app de Express
 const app = express();
 app.disable('x-powered-by');
-app.set('trust proxy', 1); // Necesario para cookies secure detrás del proxy de Vercel
+const defaultTrustProxy = ['loopback', 'linklocal', 'uniquelocal', '100.64.0.0/10'];
+const parseTrustProxy = (value) => {
+  if (!value) return null;
+  const trimmed = value.trim();
+  if (!trimmed) return null;
+  if (trimmed === 'true') return true;
+  if (trimmed === 'false') return false;
+  if (/^\d+$/.test(trimmed)) return Number(trimmed);
+  return trimmed.split(',').map((item) => item.trim()).filter(Boolean);
+};
+const trustProxySetting = parseTrustProxy(process.env.TRUST_PROXY) ?? defaultTrustProxy;
+app.set('trust proxy', trustProxySetting); // Necesario para cookies secure detrás de un proxy HTTPS
 app.set('etag', false); // Evita 304 en API y entrega siempre el cuerpo
 
 // Configuración CORS para permitir comunicación con Next.js (LAN)
