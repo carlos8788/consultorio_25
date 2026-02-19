@@ -35,19 +35,19 @@ const formatFechaCorta = (fecha) => {
   return `${dia}/${mes}/${anio.slice(-2)}`;
 };
 
-const diagnosticoResaltaFila = (diagnostico) => {
-  if (!diagnostico) return false;
+const observacionesResaltaFila = (observacionesTurno) => {
+  if (!observacionesTurno) return false;
 
-  const normalizado = diagnostico
+  const normalizado = observacionesTurno
     .toString()
     .normalize('NFD')
     .replace(/[\u0300-\u036f]/g, '')
     .toLowerCase();
-  return ['practica', 'limpieza', 'práctica'].some((palabra) => normalizado.includes(palabra));
+  return ['practica', 'limpieza'].some((palabra) => normalizado.includes(palabra));
 };
 
 export const toTurnoListDTO = (turno) => {
-  const resaltarFila = diagnosticoResaltaFila(turno.diagnostico);
+  const resaltarFila = observacionesResaltaFila(turno.observacionesTurno);
   const turnoLibre = !turno.paciente || !turno.paciente.apellido;
   const fechaISO = normalizeFechaISO(turno.fecha);
   const rowClass = [
