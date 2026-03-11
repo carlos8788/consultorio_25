@@ -4,6 +4,7 @@ import { signJwt } from '../utils/jwt.js';
 import { resolveJwtExpiresIn } from '../config/jwt.js';
 import { authCookieConfig } from '../config/auth.js';
 import { parseDurationToMs } from '../utils/time.js';
+import { parseCookies } from '../utils/cookies.js';
 import { logger } from '../logger/index.js';
 
 const formatProfessionalName = (professional) => {
@@ -34,6 +35,12 @@ const normalizeRememberMe = (value) => (
   value === true || value === 1 || value === '1' || value === 'true'
 );
 
+const issueCsrfCookie = (res, maxAgeMs) => {
+  const csrfToken = crypto.randomBytes(32).toString('hex');
+  res.cookie(authCookieConfig.csrfName, csrfToken, buildCsrfCookieOptions(maxAgeMs));
+  return csrfToken;
+};
+
 export const loginApi = async (req, res) => {
   try {
     const { username, password, rememberMe } = req.body || {};
@@ -62,10 +69,9 @@ export const loginApi = async (req, res) => {
     const expiresIn = resolveJwtExpiresIn(shouldRemember);
     const token = signJwt(payload, { expiresIn });
     const maxAgeMs = parseDurationToMs(expiresIn);
-    const csrfToken = crypto.randomBytes(32).toString('hex');
+    const csrfToken = issueCsrfCookie(res, maxAgeMs);
 
     res.cookie(authCookieConfig.name, token, buildCookieOptions(maxAgeMs));
-    res.cookie(authCookieConfig.csrfName, csrfToken, buildCsrfCookieOptions(maxAgeMs));
 
     return res.json({
       token,
@@ -91,6 +97,9 @@ export const meApi = (req, res) => {
     return res.status(401).json({ error: 'No autorizado' });
   }
 
+  const cookies = parseCookies(req);
+  const existingCsrfToken = cookies[authCookieConfig.csrfName];
+  const csrfToken = existingCsrfToken || issueCsrfCookie(res);
   const professionalId = req.auth.user.professionalId ?? null;
   const professionalName = req.auth.user.professionalName ?? null;
 
@@ -100,7 +109,10 @@ export const meApi = (req, res) => {
     professionalName,
   };
 
-  return res.json({ user });
+  return res.json({
+    user,
+    csrfToken,
+  });
 };
 
 export const logoutApi = (_req, res) => {
